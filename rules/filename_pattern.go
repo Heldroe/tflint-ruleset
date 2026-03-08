@@ -36,7 +36,7 @@ func (r *FilenamePatternRule) Check(runner tflint.Runner) error {
         return err
     }
 
-    re := regexp.MustCompile(`^\d{2}-[a-z0-9_-]+\.tf$`)
+    re := regexp.MustCompile(`^\d{2}-[a-z0-9-]+\.tf$`)
 
     for name := range files {
 

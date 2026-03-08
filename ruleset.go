@@ -13,16 +13,14 @@ func NewRuleSet() tflint.RuleSet {
         Rules: []tflint.Rule{
             rules.NewFilenamePatternRule(),
 
-            // rules.NewVariablesFileRule(),
-            // rules.NewOutputsFileRule(),
-            // rules.NewLocalsFileRule(),
-            // rules.NewDataFileRule(),
-            // rules.NewTerraformBlockFileRule(),
+            rules.NewVariablesFileRule(),
+            rules.NewOutputsFileRule(),
+            rules.NewLocalsFileRule(),
+            rules.NewDataFileRule(),
+            rules.NewTerraformBlockFileRule(),
 
-            // rules.NewTrailingWhitespaceRule(),
-            // rules.NewEmptyLineWhitespaceRule(),
-            // rules.NewFileEndNewlineRule(),
-            // rules.NewBlockSpacingRule(),
+            rules.NewFileEndNewlineRule(),
+            rules.NewBlockSpacingRule(),
         },
     }
 }
