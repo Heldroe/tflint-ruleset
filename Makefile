@@ -3,10 +3,6 @@ BINARY=tflint-ruleset
 build:
 	go build -o $(BINARY)
 
-install: build
-	mkdir -p ~/.tflint.d/plugins
-	cp $(BINARY) ~/.tflint.d/plugins/
-
 clean:
 	rm -f $(BINARY)
 
@@ -16,4 +12,7 @@ fmt:
 lint:
 	go vet ./...
 
-dev: fmt lint build
+test:
+	go test -v ./rules/...
+
+dev: fmt lint test build
