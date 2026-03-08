@@ -1,8 +1,8 @@
 package main
 
 import (
-    "github.com/Heldroe/tflint-ruleset/internal/config"
-    "github.com/Heldroe/tflint-ruleset/rules"
+    "github.com/Heldroe/tflint-ruleset-terraform-style/internal/config"
+    "github.com/Heldroe/tflint-ruleset-terraform-style/rules"
     "github.com/terraform-linters/tflint-plugin-sdk/tflint"
 )
 

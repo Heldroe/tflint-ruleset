@@ -3,7 +3,7 @@ package rules
 import (
 	"strings"
 
-	"github.com/Heldroe/tflint-ruleset/internal/config"
+	"github.com/Heldroe/tflint-ruleset-terraform-style/internal/config"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/terraform-linters/tflint-plugin-sdk/tflint"
 )

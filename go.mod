@@ -1,4 +1,4 @@
-module github.com/Heldroe/tflint-ruleset
+module github.com/Heldroe/tflint-ruleset-terraform-style
 
 go 1.24.0
 
