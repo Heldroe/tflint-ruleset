@@ -1,0 +1,19 @@
+# binaries
+tflint-ruleset
+*.exe
+*.dll
+*.so
+*.dylib
+
+# go
+/bin
+/pkg
+*.test
+*.out
+
+# editors
+.vscode
+.idea
+
+# mac
+.DS_Store
