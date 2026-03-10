@@ -24,8 +24,12 @@ All file names are expected to follow the `XX-name.tf` format to ensure a consis
 module/
   00-variables.tf
   01-terraform.tf
-  05-locals.tf
-  10-data.tf
+  02-locals.tf
+  03-data.tf
+  ...
+  10-ec2.tf
+  20-helm.tf
+  30-hetzner.tf
   ...
   99-outputs.tf
 ```
@@ -33,9 +37,11 @@ module/
 Some files are expected to contain some block types exclusively:
 * `00-variables.tf`: only `variable` blocks
 * `01-terraform.tf`: only the `terraform` block with version & provider constraints
-* `05-locals.tf`: only `locals` blocks
-* `10-data.tf`: only `data` blocks
+* `02-locals.tf`: only `locals` blocks
+* `03-data.tf`: only `data` blocks
 * `99-outputs.tf`: only `outputs` blocks
+
+We recommend naming your files with `resource` blocks starting with `10-` onward, for example `10-s3.tf`.
 
 ## Formatting
 
@@ -105,22 +111,22 @@ Enforces the `terraform` block (version and provider constraints) to be in `01-t
 ```hcl
 rule "terraform_style_locals_file" {
   enabled  = true
-  filename = "05-locals"
+  filename = "02-locals"
 }
 ```
 
-Enforces all `locals` blocks to be in `05-locals.tf`, that the file contains only `locals` blocks, and that there is exactly one such block. The file name can be configured via the `filename` argument.
+Enforces all `locals` blocks to be in `02-locals.tf`, that the file contains only `locals` blocks, and that there is exactly one such block. The file name can be configured via the `filename` argument.
 
 ### `terraform_style_data_file`
 
 ```hcl
 rule "terraform_style_data_file" {
   enabled  = true
-  filename = "10-data"
+  filename = "03-data"
 }
 ```
 
-Enforces all `data` blocks to be in `10-data.tf`, and that the file contains only `data` blocks. The file name can be configured via the `filename` argument.
+Enforces all `data` blocks to be in `03-data.tf`, and that the file contains only `data` blocks. The file name can be configured via the `filename` argument.
 
 ### `terraform_style_outputs_file`
 
@@ -138,17 +144,33 @@ Enforces all `output` blocks to be in `99-outputs.tf`, and that the file contain
 We recommend the following `.tflint.hcl` configuration:
 
 ```hcl
+# Terraform plugin for TFLint
 plugin "terraform" {
   enabled = true
   preset  = "recommended"
 }
 
-rule "terraform_documented_variables" { enabled = true }
-rule "terraform_documented_outputs" { enabled = true }
-rule "terraform_naming_convention" { enabled = true }
-rule "terraform_comment_syntax" { enabled = true }
-rule "terraform_unused_required_providers" { enabled = true }
+rule "terraform_documented_variables" {
+  enabled = true
+}
 
+rule "terraform_documented_outputs" {
+  enabled = true
+}
+
+rule "terraform_naming_convention" {
+  enabled = true
+}
+
+rule "terraform_comment_syntax" {
+  enabled = true
+}
+
+rule "terraform_unused_required_providers" {
+  enabled = true
+}
+
+# Terraform style plugin
 plugin "terraform_style" {
   enabled = true
   version = "0.1.0"

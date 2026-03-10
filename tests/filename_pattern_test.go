@@ -35,9 +35,9 @@ func TestFilenamePatternRule(t *testing.T) {
 			expected: 1,
 		},
 		{
-			name: "invalid filename - underscore (e.g. 05_locals.tf)",
+			name: "invalid filename - underscore (e.g. 02_locals.tf)",
 			files: map[string]string{
-				"05_locals.tf": "",
+				"02_locals.tf": "",
 			},
 			expected: 1,
 		},

@@ -153,7 +153,7 @@ func TestLocalsFileRule(t *testing.T) {
 		{
 			name: "valid locals location",
 			files: map[string]string{
-				"05-locals.tf": "locals { foo = \"bar\" }",
+				"02-locals.tf": "locals { foo = \"bar\" }",
 			},
 			expected: 0,
 		},
@@ -167,7 +167,7 @@ func TestLocalsFileRule(t *testing.T) {
 		{
 			name: "multiple locals blocks in locals file",
 			files: map[string]string{
-				"05-locals.tf": `
+				"02-locals.tf": `
 locals { foo = "bar" }
 locals { baz = "qux" }
 `,
@@ -201,7 +201,7 @@ func TestDataFileRule(t *testing.T) {
 		{
 			name: "valid data location",
 			files: map[string]string{
-				"10-data.tf": "data \"null_data_source\" \"foo\" {}",
+				"03-data.tf": "data \"null_data_source\" \"foo\" {}",
 			},
 			expected: 0,
 		},
