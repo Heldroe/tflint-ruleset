@@ -156,10 +156,6 @@ plugin "terraform_style" {
 }
 ```
 
-## To-do
-
-* Allow setting filenames at the plugin level as well
-
 ## License
 
 This project is licensed under the [MIT License](LICENSE).
