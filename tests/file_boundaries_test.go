@@ -1,8 +1,9 @@
-package rules
+package rules_test
 
 import (
 	"testing"
 
+	"github.com/Heldroe/tflint-ruleset-terraform-style/rules"
 	"github.com/terraform-linters/tflint-plugin-sdk/helper"
 )
 
@@ -38,7 +39,7 @@ func TestVariablesFileRule(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			runner := helper.TestRunner(t, tc.files)
-			rule := NewVariablesFileRule()
+			rule := rules.NewVariablesFileRule()
 
 			if err := rule.Check(runner); err != nil {
 				t.Fatalf("unexpected error: %s", err)
@@ -71,12 +72,28 @@ func TestTerraformBlockFileRule(t *testing.T) {
 			},
 			expected: 1,
 		},
+		{
+			name: "multiple terraform blocks in setup file",
+			files: map[string]string{
+				"01-setup.tf": `
+terraform {
+  required_version = ">= 1.0"
+}
+terraform {
+  required_providers {
+    null = {}
+  }
+}
+`,
+			},
+			expected: 1,
+		},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			runner := helper.TestRunner(t, tc.files)
-			rule := NewTerraformBlockFileRule()
+			rule := rules.NewTerraformBlockFileRule()
 
 			if err := rule.Check(runner); err != nil {
 				t.Fatalf("unexpected error: %s", err)
@@ -114,7 +131,7 @@ func TestOutputsFileRule(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			runner := helper.TestRunner(t, tc.files)
-			rule := NewOutputsFileRule()
+			rule := rules.NewOutputsFileRule()
 
 			if err := rule.Check(runner); err != nil {
 				t.Fatalf("unexpected error: %s", err)
@@ -147,12 +164,22 @@ func TestLocalsFileRule(t *testing.T) {
 			},
 			expected: 1,
 		},
+		{
+			name: "multiple locals blocks in locals file",
+			files: map[string]string{
+				"05-locals.tf": `
+locals { foo = "bar" }
+locals { baz = "qux" }
+`,
+			},
+			expected: 1,
+		},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			runner := helper.TestRunner(t, tc.files)
-			rule := NewLocalsFileRule()
+			rule := rules.NewLocalsFileRule()
 
 			if err := rule.Check(runner); err != nil {
 				t.Fatalf("unexpected error: %s", err)
@@ -190,7 +217,7 @@ func TestDataFileRule(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			runner := helper.TestRunner(t, tc.files)
-			rule := NewDataFileRule()
+			rule := rules.NewDataFileRule()
 
 			if err := rule.Check(runner); err != nil {
 				t.Fatalf("unexpected error: %s", err)

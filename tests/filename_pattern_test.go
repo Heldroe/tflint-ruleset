@@ -1,8 +1,9 @@
-package rules
+package rules_test
 
 import (
 	"testing"
 
+	"github.com/Heldroe/tflint-ruleset-terraform-style/rules"
 	"github.com/terraform-linters/tflint-plugin-sdk/helper"
 )
 
@@ -45,7 +46,7 @@ func TestFilenamePatternRule(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			runner := helper.TestRunner(t, tc.files)
-			rule := NewFilenamePatternRule()
+			rule := rules.NewFilenamePatternRule()
 
 			if err := rule.Check(runner); err != nil {
 				t.Fatalf("unexpected error: %s", err)
