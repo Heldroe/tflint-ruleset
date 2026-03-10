@@ -28,9 +28,9 @@ func TestFilenamePatternRule(t *testing.T) {
 			expected: 1,
 		},
 		{
-			name: "invalid filename - uppercase (e.g. 01-SETUP.tf)",
+			name: "invalid filename - uppercase (e.g. 01-TERRAFORM.tf)",
 			files: map[string]string{
-				"01-SETUP.tf": "",
+				"01-TERRAFORM.tf": "",
 			},
 			expected: 1,
 		},

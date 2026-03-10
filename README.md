@@ -23,7 +23,7 @@ All file names are expected to follow the `XX-name.tf` format to ensure a consis
 ```
 module/
   00-variables.tf
-  01-setup.tf
+  01-terraform.tf
   05-locals.tf
   10-data.tf
   ...
@@ -32,7 +32,7 @@ module/
 
 Some files are expected to contain some block types exclusively:
 * `00-variables.tf`: only `variable` blocks
-* `01-setup.tf`: only the `terraform` block with version & provider constraints
+* `01-terraform.tf`: only the `terraform` block with version & provider constraints
 * `05-locals.tf`: only `locals` blocks
 * `10-data.tf`: only `data` blocks
 * `99-outputs.tf`: only `outputs` blocks
@@ -89,16 +89,16 @@ rule "terraform_style_variables_file" {
 
 Enforces all `variable` blocks to be in `00-variables.tf`, and that the file contains only `variable` blocks. The file name can be configured via the `filename` argument.
 
-### `terraform_style_setup_file`
+### `terraform_style_terraform_file`
 
 ```hcl
-rule "terraform_style_setup_file" {
+rule "terraform_style_terraform_file" {
   enabled  = true
-  filename = "01-setup"
+  filename = "01-terraform"
 }
 ```
 
-Enforces the `terraform` block (version and provider constraints) to be in `01-setup.tf`, that the file contains only the `terraform` block, and that there is exactly one such block. The file name can be configured via the `filename` argument.
+Enforces the `terraform` block (version and provider constraints) to be in `01-terraform.tf`, that the file contains only the `terraform` block, and that there is exactly one such block. The file name can be configured via the `filename` argument.
 
 ### `terraform_style_locals_file`
 
@@ -158,7 +158,6 @@ plugin "terraform_style" {
 
 ## To-do
 
-* Setup: rename into `terraform` for consistency
 * Allow setting filenames at the plugin level as well
 
 ## License

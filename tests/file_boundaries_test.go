@@ -61,7 +61,7 @@ func TestTerraformBlockFileRule(t *testing.T) {
 		{
 			name: "valid terraform block location",
 			files: map[string]string{
-				"01-setup.tf": "terraform { required_version = \">= 1.0\" }",
+				"01-terraform.tf": "terraform { required_version = \">= 1.0\" }",
 			},
 			expected: 0,
 		},
@@ -73,9 +73,9 @@ func TestTerraformBlockFileRule(t *testing.T) {
 			expected: 1,
 		},
 		{
-			name: "multiple terraform blocks in setup file",
+			name: "multiple terraform blocks in terraform file",
 			files: map[string]string{
-				"01-setup.tf": `
+				"01-terraform.tf": `
 terraform {
   required_version = ">= 1.0"
 }

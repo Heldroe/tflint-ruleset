@@ -13,7 +13,7 @@ type TerraformBlockFileRule struct {
 
 func NewTerraformBlockFileRule() *TerraformBlockFileRule { return &TerraformBlockFileRule{} }
 
-func (r *TerraformBlockFileRule) Name() string { return config.RulePrefix + "_setup_file" }
+func (r *TerraformBlockFileRule) Name() string { return config.RulePrefix + "_terraform_file" }
 
 func (r *TerraformBlockFileRule) Enabled() bool { return true }
 
@@ -24,7 +24,7 @@ func (r *TerraformBlockFileRule) Check(runner tflint.Runner) error {
         Filename string `hclext:"filename,optional"`
     }
 
-    ruleConfig.Filename = config.DefaultSetupFileName
+    ruleConfig.Filename = config.DefaultTerraformFileName
 
     if err := runner.DecodeRuleConfig(r.Name(), &ruleConfig); err != nil {
         return err
