@@ -14,12 +14,13 @@ func severity() tflint.Severity {
 	return tflint.ERROR
 }
 
-func enforceBlockFileBoundary(runner tflint.Runner, rule tflint.Rule, expectedFile string, blockType string) error {
+func enforceBlockFileBoundary(runner tflint.Runner, rule tflint.Rule, expectedFile string, blockType string, maxBlocks int) error {
 	files, err := runner.GetFiles()
 	if err != nil {
 		return err
 	}
 
+	blockCount := 0
 	for filename, file := range files {
 		baseName := filepath.Base(filename)
 
@@ -30,11 +31,21 @@ func enforceBlockFileBoundary(runner tflint.Runner, rule tflint.Rule, expectedFi
 
 		for _, b := range body.Blocks {
 			// Rule 1: blockType blocks MUST be in the expected file
-			if b.Type == blockType && baseName != expectedFile {
-				emit(runner, rule,
-					fmt.Sprintf("%s blocks must be defined in %s", blockType, expectedFile),
-					b.TypeRange,
-				)
+			if b.Type == blockType {
+				if baseName != expectedFile {
+					emit(runner, rule,
+						fmt.Sprintf("%s blocks must be defined in %s", blockType, expectedFile),
+						b.TypeRange,
+					)
+				} else {
+					blockCount++
+					if maxBlocks > 0 && blockCount > maxBlocks {
+						emit(runner, rule,
+							fmt.Sprintf("only %d %s block(s) allowed in %s; found multiple", maxBlocks, blockType, expectedFile),
+							b.TypeRange,
+						)
+					}
+				}
 			}
 
 			// Rule 2: The expected file MUST ONLY contain blockType blocks

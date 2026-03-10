@@ -31,5 +31,6 @@ func (r *OutputsFileRule) Check(runner tflint.Runner) error {
     }
 
     expected := fmt.Sprintf("%s.tf", ruleConfig.Filename)
-    return enforceBlockFileBoundary(runner, r, expected, "output")
-}
+    return enforceBlockFileBoundary(runner, r, expected, "output", 0)
+    }
+

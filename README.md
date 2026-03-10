@@ -98,7 +98,7 @@ rule "terraform_style_setup_file" {
 }
 ```
 
-Enforces the `terraform` block (version and provider constraints) to be in `01-setup.tf`, and that the file contains only the `terraform` block. The file name can be configured via the `filename` argument.
+Enforces the `terraform` block (version and provider constraints) to be in `01-setup.tf`, that the file contains only the `terraform` block, and that there is exactly one such block. The file name can be configured via the `filename` argument.
 
 ### `terraform_style_locals_file`
 
@@ -109,7 +109,7 @@ rule "terraform_style_locals_file" {
 }
 ```
 
-Enforces all `locals` blocks to be in `05-locals.tf`, and that the file contains only `locals` blocks. The file name can be configured via the `filename` argument.
+Enforces all `locals` blocks to be in `05-locals.tf`, that the file contains only `locals` blocks, and that there is exactly one such block. The file name can be configured via the `filename` argument.
 
 ### `terraform_style_data_file`
 
@@ -158,8 +158,8 @@ plugin "terraform_style" {
 
 ## To-do
 
-* Locals: enforce a single `locals` block
 * Setup: rename into `terraform` for consistency
+* Allow setting filenames at the plugin level as well
 
 ## License
 

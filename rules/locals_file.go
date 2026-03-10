@@ -31,5 +31,6 @@ func (r *LocalsFileRule) Check(runner tflint.Runner) error {
     }
 
     expected := fmt.Sprintf("%s.tf", ruleConfig.Filename)
-    return enforceBlockFileBoundary(runner, r, expected, "locals")
-}
+    return enforceBlockFileBoundary(runner, r, expected, "locals", 1)
+    }
+

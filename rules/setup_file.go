@@ -31,5 +31,6 @@ func (r *TerraformBlockFileRule) Check(runner tflint.Runner) error {
     }
 
     expected := fmt.Sprintf("%s.tf", ruleConfig.Filename)
-    return enforceBlockFileBoundary(runner, r, expected, "terraform")
-}
+    return enforceBlockFileBoundary(runner, r, expected, "terraform", 1)
+    }
+
