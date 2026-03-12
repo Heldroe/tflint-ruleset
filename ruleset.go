@@ -19,6 +19,7 @@ func NewRuleSet() tflint.RuleSet {
             rules.NewDataFileRule(),
             rules.NewTerraformBlockFileRule(),
             rules.NewNoProviderBlockRule(),
+            rules.NewNoBackendBlockRule(),
 
             rules.NewFileEndNewlineRule(),
             rules.NewBlockSpacingRule(),

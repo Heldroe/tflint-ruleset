@@ -149,6 +149,20 @@ rule "terraform_style_no_provider_block" {
 
 Enforces that no `provider` blocks are defined in the module. Provider configurations should be passed from the root module or defined outside the module.
 
+When using pure Terraform you might want to disable this rule for your top level module where you define providers.
+
+### `terraform_style_no_backend_block`
+
+```hcl
+rule "terraform_style_no_backend_block" {
+  enabled = true
+}
+```
+
+Enforces that no `backend` blocks are defined in the `terraform` block. Backend configuration should be passed via CLI or defined in a separate file if using a partial configuration.
+
+When using pure Terraform you might want to disable this rule for your top level module where you define a state backend.
+
 ## Recommended configuration
 
 We recommend the following `.tflint.hcl` configuration:
@@ -187,6 +201,10 @@ plugin "terraform_style" {
   source  = "github.com/Heldroe/tflint-ruleset-terraform-style"
 }
 ```
+
+When using pure Terraform, you might want to disable the following rules for your top level modules:
+- `terraform_style_no_provider_block`
+- `terraform_style_no_backend_block`
 
 ## License
 
