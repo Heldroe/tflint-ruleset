@@ -78,11 +78,12 @@ Enforces that every file ends with exactly one newline.
 
 ```hcl
 rule "terraform_style_filename_pattern" {
-  enabled  = true
+  enabled   = true
+  min_index = 10
 }
 ```
 
-Enforces that all Terraform files follow the `XX-name.tf` pattern (e.g., `00-variables.tf`).
+Enforces that all Terraform files follow the `XX-name.tf` pattern (e.g., `00-variables.tf`). Resource files must use an index equal or greater than `min_index` (default `10`).
 
 ### `terraform_style_variables_file`
 

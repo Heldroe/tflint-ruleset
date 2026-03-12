@@ -14,11 +14,60 @@ func TestFilenamePatternRule(t *testing.T) {
 		expected int
 	}{
 		{
-			name: "valid filename",
+			name: "valid filename (index >= 10)",
 			files: map[string]string{
-				"00-main.tf": "",
+				"10-main.tf": "",
 			},
 			expected: 0,
+		},
+		{
+			name: "valid standard file (00-variables.tf)",
+			files: map[string]string{
+				"00-variables.tf": "",
+			},
+			expected: 0,
+		},
+		{
+			name: "valid standard file (01-terraform.tf)",
+			files: map[string]string{
+				"01-terraform.tf": "",
+			},
+			expected: 0,
+		},
+		{
+			name: "valid standard file (02-locals.tf)",
+			files: map[string]string{
+				"02-locals.tf": "",
+			},
+			expected: 0,
+		},
+		{
+			name: "valid standard file (03-data.tf)",
+			files: map[string]string{
+				"03-data.tf": "",
+			},
+			expected: 0,
+		},
+		{
+			name: "valid standard file (99-outputs.tf)",
+			files: map[string]string{
+				"99-outputs.tf": "",
+			},
+			expected: 0,
+		},
+		{
+			name: "invalid filename - too low index (e.g. 05-foo.tf)",
+			files: map[string]string{
+				"05-foo.tf": "",
+			},
+			expected: 1,
+		},
+		{
+			name: "invalid filename - too low index (e.g. 00-custom.tf)",
+			files: map[string]string{
+				"00-custom.tf": "",
+			},
+			expected: 1,
 		},
 		{
 			name: "invalid filename - no prefix (e.g. main.tf)",
@@ -28,9 +77,9 @@ func TestFilenamePatternRule(t *testing.T) {
 			expected: 1,
 		},
 		{
-			name: "invalid filename - uppercase (e.g. 01-TERRAFORM.tf)",
+			name: "invalid filename - uppercase (e.g. 10-TERRAFORM.tf)",
 			files: map[string]string{
-				"01-TERRAFORM.tf": "",
+				"10-TERRAFORM.tf": "",
 			},
 			expected: 1,
 		},
