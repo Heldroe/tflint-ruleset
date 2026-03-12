@@ -139,6 +139,16 @@ rule "terraform_style_outputs_file" {
 
 Enforces all `output` blocks to be in `99-outputs.tf`, and that the file contains only `output` blocks. The file name can be configured via the `filename` argument.
 
+### `terraform_style_no_provider_block`
+
+```hcl
+rule "terraform_style_no_provider_block" {
+  enabled = true
+}
+```
+
+Enforces that no `provider` blocks are defined in the module. Provider configurations should be passed from the root module or defined outside the module.
+
 ## Recommended configuration
 
 We recommend the following `.tflint.hcl` configuration:
