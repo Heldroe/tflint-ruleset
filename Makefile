@@ -1,4 +1,4 @@
-BINARY=tflint-ruleset
+BINARY=tflint-ruleset-terraform_style
 
 build:
 	go build -o $(BINARY)
@@ -14,5 +14,9 @@ lint:
 
 test:
 	go test -v ./rules/... ./tests/...
+
+install: build
+	mkdir -p ~/.tflint.d/plugins
+	cp $(BINARY) ~/.tflint.d/plugins
 
 dev: fmt lint test build

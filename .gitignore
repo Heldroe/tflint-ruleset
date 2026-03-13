@@ -1,5 +1,5 @@
 # binaries
-tflint-ruleset
+tflint-ruleset-terraform_style
 *.exe
 *.dll
 *.so
