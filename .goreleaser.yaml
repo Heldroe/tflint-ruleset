@@ -44,4 +44,4 @@ changelog:
 release:
   github:
     owner: Heldroe
-    name: tflint-ruleset
+    name: tflint-ruleset-terraform-style
