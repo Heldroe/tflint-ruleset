@@ -51,4 +51,4 @@ jobs:
       - name: Attest build provenance
         uses: actions/attest-build-provenance@v4
         with:
-          subject-checksums: ./dist/checksums.txt
+          subject-path: ./dist/checksums.txt
