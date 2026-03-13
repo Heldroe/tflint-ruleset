@@ -15,7 +15,7 @@ lint:
 test:
 	go test -v ./rules/... ./tests/...
 
-install: build
+install:
 	mkdir -p ~/.tflint.d/plugins
 	cp $(BINARY) ~/.tflint.d/plugins
 
