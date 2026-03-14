@@ -12,7 +12,6 @@ func NewRuleSet() tflint.RuleSet {
         Version: "0.1.0",
         Rules: []tflint.Rule{
             rules.NewFilenamePatternRule(),
-
             rules.NewVariablesFileRule(),
             rules.NewOutputsFileRule(),
             rules.NewLocalsFileRule(),
@@ -20,9 +19,16 @@ func NewRuleSet() tflint.RuleSet {
             rules.NewTerraformBlockFileRule(),
             rules.NewNoProviderBlockRule(),
             rules.NewNoBackendBlockRule(),
-
             rules.NewFileEndNewlineRule(),
             rules.NewBlockSpacingRule(),
+            rules.NewNoEmptyFileRule(),
+            rules.NewTrailingCommaRule(),
+            rules.NewMapAssignmentRule(),
+            rules.NewCommentStyleRule(),
+            rules.NewResourceArgumentsRule(),
+            rules.NewBlockInternalSpacingRule(),
+            rules.NewNoProviderArgumentRule(),
+            rules.NewStructureLayoutRule(),
         },
     }
 }
