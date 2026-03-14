@@ -27,8 +27,17 @@ func (r *TrailingCommaRule) Enabled() bool {
 func (r *TrailingCommaRule) Severity() tflint.Severity {
 	return tflint.ERROR
 }
-
 func (r *TrailingCommaRule) Check(runner tflint.Runner) error {
+	ruleConfig := struct {
+		ExcludeSingleElement bool `hclext:"exclude_single_element,optional"`
+	}{
+		ExcludeSingleElement: false,
+	}
+
+	if err := runner.DecodeRuleConfig(r.Name(), &ruleConfig); err != nil {
+		return err
+	}
+
 	files, err := runner.GetFiles()
 	if err != nil {
 		return err
@@ -40,70 +49,72 @@ func (r *TrailingCommaRule) Check(runner tflint.Runner) error {
 			continue
 		}
 
-		walkBody(runner, r, file.Bytes, body)
+		// Recursively check expressions
+		walkBody(runner, r, file.Bytes, body, ruleConfig.ExcludeSingleElement)
 	}
 
 	return nil
 }
 
-func walkBody(runner tflint.Runner, rule tflint.Rule, src []byte, body *hclsyntax.Body) {
+
+func walkBody(runner tflint.Runner, rule tflint.Rule, src []byte, body *hclsyntax.Body, excludeSingle bool) {
 	for _, attr := range body.Attributes {
-		walkExpr(runner, rule, src, attr.Expr)
+		walkExpr(runner, rule, src, attr.Expr, excludeSingle)
 	}
 	for _, block := range body.Blocks {
-		walkBody(runner, rule, src, block.Body)
+		walkBody(runner, rule, src, block.Body, excludeSingle)
 	}
 }
 
-func walkExpr(runner tflint.Runner, rule tflint.Rule, src []byte, expr hclsyntax.Expression) {
+func walkExpr(runner tflint.Runner, rule tflint.Rule, src []byte, expr hclsyntax.Expression, excludeSingle bool) {
 	switch e := expr.(type) {
 	case *hclsyntax.TupleConsExpr: // List: [ ... ]
-		checkList(runner, rule, src, e)
+		checkList(runner, rule, src, e, excludeSingle)
 		for _, item := range e.Exprs {
-			walkExpr(runner, rule, src, item)
+			walkExpr(runner, rule, src, item, excludeSingle)
 		}
 	case *hclsyntax.ObjectConsExpr: // Map/Object: { ... }
-		checkMap(runner, rule, src, e)
+		checkMap(runner, rule, src, e, excludeSingle)
 		for _, item := range e.Items {
-			walkExpr(runner, rule, src, item.KeyExpr)
-			walkExpr(runner, rule, src, item.ValueExpr)
+			walkExpr(runner, rule, src, item.KeyExpr, excludeSingle)
+			walkExpr(runner, rule, src, item.ValueExpr, excludeSingle)
 		}
 	case *hclsyntax.FunctionCallExpr:
 		for _, arg := range e.Args {
-			walkExpr(runner, rule, src, arg)
+			walkExpr(runner, rule, src, arg, excludeSingle)
 		}
 	case *hclsyntax.ConditionalExpr:
-		walkExpr(runner, rule, src, e.Condition)
-		walkExpr(runner, rule, src, e.TrueResult)
-		walkExpr(runner, rule, src, e.FalseResult)
+		walkExpr(runner, rule, src, e.Condition, excludeSingle)
+		walkExpr(runner, rule, src, e.TrueResult, excludeSingle)
+		walkExpr(runner, rule, src, e.FalseResult, excludeSingle)
 	case *hclsyntax.ForExpr:
-		walkExpr(runner, rule, src, e.CollExpr)
+		walkExpr(runner, rule, src, e.CollExpr, excludeSingle)
 		if e.KeyExpr != nil {
-			walkExpr(runner, rule, src, e.KeyExpr)
+			walkExpr(runner, rule, src, e.KeyExpr, excludeSingle)
 		}
-		walkExpr(runner, rule, src, e.ValExpr)
+		walkExpr(runner, rule, src, e.ValExpr, excludeSingle)
 		if e.CondExpr != nil {
-			walkExpr(runner, rule, src, e.CondExpr)
+			walkExpr(runner, rule, src, e.CondExpr, excludeSingle)
 		}
 	case *hclsyntax.ParenthesesExpr:
-		walkExpr(runner, rule, src, e.Expression)
+		walkExpr(runner, rule, src, e.Expression, excludeSingle)
 	case *hclsyntax.BinaryOpExpr:
-		walkExpr(runner, rule, src, e.LHS)
-		walkExpr(runner, rule, src, e.RHS)
+		walkExpr(runner, rule, src, e.LHS, excludeSingle)
+		walkExpr(runner, rule, src, e.RHS, excludeSingle)
 	case *hclsyntax.UnaryOpExpr:
-		walkExpr(runner, rule, src, e.Val)
+		walkExpr(runner, rule, src, e.Val, excludeSingle)
 	case *hclsyntax.IndexExpr:
-		walkExpr(runner, rule, src, e.Collection)
-		walkExpr(runner, rule, src, e.Key)
+		walkExpr(runner, rule, src, e.Collection, excludeSingle)
+		walkExpr(runner, rule, src, e.Key, excludeSingle)
 	case *hclsyntax.SplatExpr:
-		walkExpr(runner, rule, src, e.Source)
+		walkExpr(runner, rule, src, e.Source, excludeSingle)
 		// e.Each is implicit usually, check?
 	case *hclsyntax.TemplateExpr:
 		for _, part := range e.Parts {
-			walkExpr(runner, rule, src, part)
+			walkExpr(runner, rule, src, part, excludeSingle)
 		}
 	case *hclsyntax.TemplateWrapExpr:
-		walkExpr(runner, rule, src, e.Wrapped)
+		walkExpr(runner, rule, src, e.Wrapped, excludeSingle)
 	case *hclsyntax.AnonSymbolExpr:
 		// Terminal
 	case *hclsyntax.LiteralValueExpr:
@@ -117,11 +128,15 @@ func walkExpr(runner tflint.Runner, rule tflint.Rule, src []byte, expr hclsyntax
 	}
 }
 
-func checkList(runner tflint.Runner, rule tflint.Rule, src []byte, expr *hclsyntax.TupleConsExpr) {
+func checkList(runner tflint.Runner, rule tflint.Rule, src []byte, expr *hclsyntax.TupleConsExpr, excludeSingle bool) {
 	if len(expr.Exprs) == 0 {
 		return
 	}
-	
+
+	if excludeSingle && len(expr.Exprs) == 1 {
+		return
+	}
+
 	rng := expr.Range()
 	startLine := rng.Start.Line
 	endLine := rng.End.Line 
@@ -159,16 +174,30 @@ func checkList(runner tflint.Runner, rule tflint.Rule, src []byte, expr *hclsynt
 	}
 
 	if !hasComma {
+		lastItemRng := lastItem.Range()
+		startPos := lastItemRng.End
+		if startPos.Column > 1 {
+			startPos.Column--
+			startPos.Byte--
+		}
 		runner.EmitIssue(
 			rule,
 			"lists defined in multiple lines must have a trailing comma on the last line",
-			lastItem.Range(),
+			hcl.Range{
+				Filename: lastItemRng.Filename,
+				Start:    startPos,
+				End:      lastItemRng.End,
+			},
 		)
 	}
 }
 
-func checkMap(runner tflint.Runner, rule tflint.Rule, src []byte, expr *hclsyntax.ObjectConsExpr) {
+func checkMap(runner tflint.Runner, rule tflint.Rule, src []byte, expr *hclsyntax.ObjectConsExpr, excludeSingle bool) {
 	if len(expr.Items) == 0 {
+		return
+	}
+	
+	if excludeSingle && len(expr.Items) == 1 {
 		return
 	}
 

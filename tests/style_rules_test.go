@@ -80,6 +80,19 @@ func TestStyleRules(t *testing.T) {
 				files:    map[string]string{"main.tf": "x = templatefile(\"path\", {\na = 1,\nb = 2\n})"},
 				expected: 1,
 			},
+			{
+				name: "valid: single-element multi-line list without comma (with exclude_single_element=true)",
+				files: map[string]string{
+					"main.tf": "l = [\n  1\n]",
+					".tflint.hcl": `
+rule "terraform_style_trailing_comma" {
+  enabled = true
+  exclude_single_element = true
+}
+`,
+				},
+				expected: 0,
+			},
 		}
 		for _, tc := range tests {
 			t.Run(tc.name, func(t *testing.T) {
@@ -334,7 +347,7 @@ func TestStyleRules(t *testing.T) {
 			{
 				name:     "invalid: comma at start of line",
 				files:    map[string]string{"main.tf": "l = [1\n, 2]"},
-				expected: 2,
+				expected: 3,
 			},
 			{
 				name:     "valid: multi line list correct",
@@ -355,6 +368,11 @@ func TestStyleRules(t *testing.T) {
 				name:     "valid: multi line map correct",
 				files:    map[string]string{"main.tf": "l = [\n  {\n    foo = \"bar\"\n  },\n]"},
 				expected: 0,
+			},
+			{
+				name:     "invalid: multi line list first element same line",
+				files:    map[string]string{"main.tf": "l = [1,\n  2,\n]"},
+				expected: 1,
 			},
 		}
 		for _, tc := range tests {

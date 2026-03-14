@@ -13,7 +13,8 @@ import (
 // StructureLayoutRule enforces layout rules for lists and maps.
 // 1. Single-line structures must not have a trailing comma.
 // 2. Multi-line structures must have the closing bracket on its own line.
-// 3. Commas must not be at the start of a line.
+// 3. Multi-line structures must have their first element on a new line.
+// 4. Commas must not be at the start of a line.
 type StructureLayoutRule struct {
 	tflint.DefaultRule
 }
@@ -64,12 +65,22 @@ func walkBodyStructure(runner tflint.Runner, rule tflint.Rule, src []byte, body 
 func walkExprStructure(runner tflint.Runner, rule tflint.Rule, src []byte, expr hclsyntax.Expression) {
 	switch e := expr.(type) {
 	case *hclsyntax.TupleConsExpr:
-		checkStructure(runner, rule, src, e.Range(), "]", e.Exprs)
+		var firstRange *hcl.Range
+		if len(e.Exprs) > 0 {
+			r := e.Exprs[0].Range()
+			firstRange = &r
+		}
+		checkStructure(runner, rule, src, e.Range(), "]", firstRange)
 		for _, item := range e.Exprs {
 			walkExprStructure(runner, rule, src, item)
 		}
 	case *hclsyntax.ObjectConsExpr:
-		checkStructure(runner, rule, src, e.Range(), "}", nil)
+		var firstRange *hcl.Range
+		if len(e.Items) > 0 {
+			r := e.Items[0].KeyExpr.Range()
+			firstRange = &r
+		}
+		checkStructure(runner, rule, src, e.Range(), "}", firstRange)
 		for _, item := range e.Items {
 			walkExprStructure(runner, rule, src, item.KeyExpr)
 			walkExprStructure(runner, rule, src, item.ValueExpr)
@@ -115,19 +126,14 @@ func walkExprStructure(runner tflint.Runner, rule tflint.Rule, src []byte, expr 
 
 // checkStructure checks layout for a generic list/map expression
 // bracketChar is "]" or "}"
-func checkStructure(runner tflint.Runner, rule tflint.Rule, src []byte, rng hcl.Range, bracketChar string, listItems []hclsyntax.Expression) {
+func checkStructure(runner tflint.Runner, rule tflint.Rule, src []byte, rng hcl.Range, bracketChar string, firstItemRange *hcl.Range) {
 	startLine := rng.Start.Line
 	endLine := rng.End.Line
 
 	// 1. Single-line check
 	if startLine == endLine {
 		// Check for trailing comma
-		// Find the closing bracket position
-		// Range.End is usually after the closing bracket.
-		// Scan backwards from End.Byte - 1
 		endByte := rng.End.Byte
-		
-		// Safety check
 		if endByte > len(src) {
 			return
 		}
@@ -141,10 +147,9 @@ func checkStructure(runner tflint.Runner, rule tflint.Rule, src []byte, rng hcl.
 		}
 
 		if scanIdx < rng.Start.Byte {
-			return // Should not happen
+			return
 		}
 
-		// Now scan backwards from before bracket for comma
 		foundComma := false
 		for i := scanIdx - 1; i >= rng.Start.Byte; i-- {
 			b := src[i]
@@ -155,7 +160,6 @@ func checkStructure(runner tflint.Runner, rule tflint.Rule, src []byte, rng hcl.
 				foundComma = true
 				break
 			}
-			// Hit content (not whitespace/comma)
 			break
 		}
 
@@ -169,6 +173,22 @@ func checkStructure(runner tflint.Runner, rule tflint.Rule, src []byte, rng hcl.
 		return
 	}
 
+	// 2. Multi-line check: First element on its own line
+	if firstItemRange != nil {
+		if firstItemRange.Start.Line == startLine {
+			runner.EmitIssue(
+				rule,
+				"for multi-line structures, the first element must be on a new line",
+				hcl.Range{
+					Filename: firstItemRange.Filename,
+					Start:    firstItemRange.Start,
+					End:      hcl.Pos{Line: firstItemRange.Start.Line, Column: firstItemRange.Start.Column + 1, Byte: firstItemRange.Start.Byte + 1},
+				},
+			)
+		}
+	}
+
+	// 3. Multi-line check: Closing bracket on own line
 	closeBracketIdx := -1
 	for i := rng.End.Byte - 1; i >= rng.Start.Byte; i-- {
 		if i < len(src) && src[i] == bracketChar[0] {
@@ -179,43 +199,55 @@ func checkStructure(runner tflint.Runner, rule tflint.Rule, src []byte, rng hcl.
 
 	if closeBracketIdx != -1 {
 		lineStart := 0
-		for i := closeBracketIdx - 1; i >= 0; i-- {
+		lineNum := 1
+		for i := 0; i < closeBracketIdx; i++ {
 			if src[i] == '\n' {
 				lineStart = i + 1
-				break
+				lineNum++
 			}
 		}
 
-		// Check text from lineStart to closeBracketIdx
 		prefix := src[lineStart:closeBracketIdx]
 		if strings.TrimSpace(string(prefix)) != "" {
 			runner.EmitIssue(
 				rule,
 				"multi-line structures must have the closing bracket on its own line",
-				rng,
+				hcl.Range{
+					Filename: rng.Filename,
+					Start:    hcl.Pos{Line: lineNum, Column: closeBracketIdx - lineStart + 1, Byte: closeBracketIdx},
+					End:      hcl.Pos{Line: lineNum, Column: closeBracketIdx - lineStart + 2, Byte: closeBracketIdx + 1},
+				},
 			)
 		}
 	}
 
-	// Comma placement check
-	// Scan the raw text of the expression for comma at start of line
-	// Range: rng.Start.Byte to rng.End.Byte
+	// 4. Comma placement check
 	if rng.End.Byte <= len(src) {
 		text := src[rng.Start.Byte:rng.End.Byte]
-		
 		lines := bytes.Split(text, []byte("\n"))
-		// Skip first line (it contains `[` or `start`).
-		for i := 1; i < len(lines); i++ {
-			line := lines[i]
-			trimmed := bytes.TrimSpace(line)
-			if len(trimmed) > 0 && trimmed[0] == ',' {
-				runner.EmitIssue(
-					rule,
-					"commas must not be at the start of a line",
-					rng,
-				)
-				break 
+		currentOffset := rng.Start.Byte
+		currentLine := rng.Start.Line
+
+		for i, line := range lines {
+			if i > 0 {
+				trimmed := bytes.TrimLeft(line, " \t")
+				if len(trimmed) > 0 && trimmed[0] == ',' {
+					col := len(line) - len(trimmed) + 1
+					commaOffset := currentOffset + (len(line) - len(trimmed))
+					runner.EmitIssue(
+						rule,
+						"commas must not be at the start of a line",
+						hcl.Range{
+							Filename: rng.Filename,
+							Start:    hcl.Pos{Line: currentLine, Column: col, Byte: commaOffset},
+							End:      hcl.Pos{Line: currentLine, Column: col + 1, Byte: commaOffset + 1},
+						},
+					)
+					break 
+				}
 			}
+			currentOffset += len(line) + 1 // +1 for newline
+			currentLine++
 		}
 	}
 }
