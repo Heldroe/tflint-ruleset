@@ -26,6 +26,10 @@ func (r *NoProviderBlockRule) Severity() tflint.Severity {
 	return tflint.ERROR
 }
 
+func (r *NoProviderBlockRule) Link() string {
+	return ruleLink("no_provider_block")
+}
+
 func (r *NoProviderBlockRule) Check(runner tflint.Runner) error {
 	files, err := runner.GetFiles()
 	if err != nil {

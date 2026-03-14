@@ -19,6 +19,10 @@ func (r *VariablesFileRule) Enabled() bool { return true }
 
 func (r *VariablesFileRule) Severity() tflint.Severity { return severity() }
 
+func (r *VariablesFileRule) Link() string {
+	return ruleLink("variables_file")
+}
+
 func (r *VariablesFileRule) Check(runner tflint.Runner) error {
 	var ruleConfig struct {
 		Filename string `hclext:"filename,optional"`

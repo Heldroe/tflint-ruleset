@@ -31,6 +31,10 @@ func (r *ResourceArgumentsRule) Severity() tflint.Severity {
 	return tflint.ERROR
 }
 
+func (r *ResourceArgumentsRule) Link() string {
+	return ruleLink("resource_arguments")
+}
+
 func (r *ResourceArgumentsRule) Check(runner tflint.Runner) error {
 	files, err := runner.GetFiles()
 	if err != nil {

@@ -27,7 +27,13 @@ func (r *TrailingCommaRule) Enabled() bool {
 func (r *TrailingCommaRule) Severity() tflint.Severity {
 	return tflint.ERROR
 }
+
+func (r *TrailingCommaRule) Link() string {
+	return ruleLink("trailing_comma")
+}
+
 func (r *TrailingCommaRule) Check(runner tflint.Runner) error {
+
 	ruleConfig := struct {
 		ExcludeSingleElement bool `hclext:"exclude_single_element,optional"`
 	}{

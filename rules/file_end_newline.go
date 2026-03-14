@@ -20,6 +20,10 @@ func (r *FileEndNewlineRule) Enabled() bool { return true }
 
 func (r *FileEndNewlineRule) Severity() tflint.Severity { return severity() }
 
+func (r *FileEndNewlineRule) Link() string {
+	return ruleLink("file_end_newline")
+}
+
 func (r *FileEndNewlineRule) Check(runner tflint.Runner) error {
 	files, err := runner.GetFiles()
 	if err != nil {

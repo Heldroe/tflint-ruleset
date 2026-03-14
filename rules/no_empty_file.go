@@ -28,6 +28,10 @@ func (r *NoEmptyFileRule) Severity() tflint.Severity {
 	return tflint.ERROR
 }
 
+func (r *NoEmptyFileRule) Link() string {
+	return ruleLink("no_empty_file")
+}
+
 func (r *NoEmptyFileRule) Check(runner tflint.Runner) error {
 	files, err := runner.GetFiles()
 	if err != nil {

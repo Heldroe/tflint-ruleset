@@ -30,6 +30,10 @@ func (r *CommentStyleRule) Severity() tflint.Severity {
 	return tflint.ERROR
 }
 
+func (r *CommentStyleRule) Link() string {
+	return ruleLink("comment_style")
+}
+
 func (r *CommentStyleRule) Check(runner tflint.Runner) error {
 	files, err := runner.GetFiles()
 	if err != nil {

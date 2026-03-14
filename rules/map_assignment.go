@@ -29,6 +29,10 @@ func (r *MapAssignmentRule) Severity() tflint.Severity {
 	return tflint.ERROR
 }
 
+func (r *MapAssignmentRule) Link() string {
+	return ruleLink("map_assignment")
+}
+
 func (r *MapAssignmentRule) Check(runner tflint.Runner) error {
 	files, err := runner.GetFiles()
 	if err != nil {

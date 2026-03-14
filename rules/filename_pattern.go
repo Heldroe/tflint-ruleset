@@ -33,6 +33,10 @@ func (r *FilenamePatternRule) Severity() tflint.Severity {
 	return tflint.ERROR
 }
 
+func (r *FilenamePatternRule) Link() string {
+	return ruleLink("filename_pattern")
+}
+
 func (r *FilenamePatternRule) Check(runner tflint.Runner) error {
 	ruleConfig := struct {
 		MinIndex int `hclext:"min_index,optional"`

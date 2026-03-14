@@ -26,6 +26,10 @@ func (r *NoBackendBlockRule) Severity() tflint.Severity {
 	return tflint.ERROR
 }
 
+func (r *NoBackendBlockRule) Link() string {
+	return ruleLink("no_backend_block")
+}
+
 func (r *NoBackendBlockRule) Check(runner tflint.Runner) error {
 	files, err := runner.GetFiles()
 	if err != nil {

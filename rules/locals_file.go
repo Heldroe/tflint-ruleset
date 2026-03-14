@@ -19,6 +19,10 @@ func (r *LocalsFileRule) Enabled() bool { return true }
 
 func (r *LocalsFileRule) Severity() tflint.Severity { return severity() }
 
+func (r *LocalsFileRule) Link() string {
+	return ruleLink("locals_file")
+}
+
 func (r *LocalsFileRule) Check(runner tflint.Runner) error {
     var ruleConfig struct {
         Filename string `hclext:"filename,optional"`

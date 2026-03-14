@@ -21,6 +21,10 @@ func (r *BlockSpacingRule) Enabled() bool { return true }
 
 func (r *BlockSpacingRule) Severity() tflint.Severity { return severity() }
 
+func (r *BlockSpacingRule) Link() string {
+	return ruleLink("block_spacing")
+}
+
 func (r *BlockSpacingRule) Check(runner tflint.Runner) error {
     files, err := runner.GetFiles()
     if err != nil {

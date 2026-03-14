@@ -27,6 +27,10 @@ func (r *NoProviderArgumentRule) Severity() tflint.Severity {
 	return tflint.ERROR
 }
 
+func (r *NoProviderArgumentRule) Link() string {
+	return ruleLink("no_provider_argument")
+}
+
 func (r *NoProviderArgumentRule) Check(runner tflint.Runner) error {
 	files, err := runner.GetFiles()
 	if err != nil {

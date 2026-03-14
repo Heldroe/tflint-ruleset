@@ -86,3 +86,7 @@ func moduleBlocks(runner tflint.Runner) ([]*hclext.Block, error) {
 func emit(runner tflint.Runner, rule tflint.Rule, msg string, r hcl.Range) {
 	runner.EmitIssue(rule, msg, r)
 }
+
+func ruleLink(suffix string) string {
+	return fmt.Sprintf("https://github.com/Heldroe/tflint-ruleset-terraform-style/blob/main/docs/rules/%s.md", suffix)
+}

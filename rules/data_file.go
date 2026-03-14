@@ -19,6 +19,10 @@ func (r *DataFileRule) Enabled() bool { return true }
 
 func (r *DataFileRule) Severity() tflint.Severity { return severity() }
 
+func (r *DataFileRule) Link() string {
+	return ruleLink("data_file")
+}
+
 func (r *DataFileRule) Check(runner tflint.Runner) error {
 	var ruleConfig struct {
 		Filename string `hclext:"filename,optional"`

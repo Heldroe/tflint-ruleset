@@ -35,6 +35,10 @@ func (r *StructureLayoutRule) Severity() tflint.Severity {
 	return tflint.ERROR
 }
 
+func (r *StructureLayoutRule) Link() string {
+	return ruleLink("structure_layout")
+}
+
 func (r *StructureLayoutRule) Check(runner tflint.Runner) error {
 	files, err := runner.GetFiles()
 	if err != nil {

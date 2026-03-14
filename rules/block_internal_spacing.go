@@ -29,6 +29,10 @@ func (r *BlockInternalSpacingRule) Severity() tflint.Severity {
 	return tflint.ERROR
 }
 
+func (r *BlockInternalSpacingRule) Link() string {
+	return ruleLink("block_internal_spacing")
+}
+
 func (r *BlockInternalSpacingRule) Check(runner tflint.Runner) error {
 	files, err := runner.GetFiles()
 	if err != nil {

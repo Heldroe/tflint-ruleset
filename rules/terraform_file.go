@@ -19,6 +19,10 @@ func (r *TerraformBlockFileRule) Enabled() bool { return true }
 
 func (r *TerraformBlockFileRule) Severity() tflint.Severity { return severity() }
 
+func (r *TerraformBlockFileRule) Link() string {
+	return ruleLink("terraform_file")
+}
+
 func (r *TerraformBlockFileRule) Check(runner tflint.Runner) error {
     var ruleConfig struct {
         Filename string `hclext:"filename,optional"`
