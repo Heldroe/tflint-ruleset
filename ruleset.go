@@ -6,10 +6,12 @@ import (
     "github.com/terraform-linters/tflint-plugin-sdk/tflint"
 )
 
+var version = "0.1.0"
+
 func NewRuleSet() tflint.RuleSet {
     return &tflint.BuiltinRuleSet{
         Name:    config.RulePrefix,
-        Version: "0.1.0",
+        Version: version,
         Rules: []tflint.Rule{
             rules.NewFilenamePatternRule(),
             rules.NewVariablesFileRule(),

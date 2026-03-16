@@ -31,6 +31,15 @@ jobs:
       - name: Test
         run: make test
 
+      - name: Verify Version
+        run: |
+          TAG_VERSION=${GITHUB_REF_NAME#v}
+          CODE_VERSION=$(grep 'var version =' ruleset.go | sed -E 's/.*"([^"]+)".*/\1/')
+          if [ "$TAG_VERSION" != "$CODE_VERSION" ]; then
+            echo "Error: Tag version ($TAG_VERSION) does not match code version ($CODE_VERSION) in ruleset.go"
+            exit 1
+          fi
+
       - name: Import GPG key
         id: import_gpg
         uses: crazy-max/ghaction-import-gpg@v7

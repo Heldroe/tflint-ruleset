@@ -48,7 +48,7 @@ We recommend naming your files with `resource` blocks starting with `10-` onward
 * Blocks must be spaced by a single empty line
 * There must be a single empty line at the end of every file
 
-We also recommend enforcing formatting via `terraform fmt`.
+We also recommend enforcing formatting via `terraform fmt` and validation via `terraform validate`.
 
 ## Rules & configuration
 
