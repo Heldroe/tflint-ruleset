@@ -284,6 +284,10 @@ When using pure Terraform, you might want to disable the following rules for you
 - `terraform_style_no_provider_block`
 - `terraform_style_no_backend_block`
 
+## Contributing
+
+If you want to contribute to this project, please see [CONTRIBUTING.md](CONTRIBUTING.md).
+
 ## License
 
 This project is licensed under the [MIT License](LICENSE).
