@@ -4,26 +4,90 @@ import (
 	"fmt"
 	"path/filepath"
 	"regexp"
+	"strings"
 
+	"github.com/Heldroe/tflint-ruleset-terraform-style/internal/config"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/terraform-linters/tflint-plugin-sdk/tflint"
 )
 
 var filenamePattern = regexp.MustCompile(`^(\d{2})-[a-z0-9-]+\.tf$`)
 
+var validTerraformBlocks = map[string]bool{
+	"check":     true,
+	"data":      true,
+	"import":    true,
+	"locals":    true,
+	"module":    true,
+	"moved":     true,
+	"output":    true,
+	"provider":  true,
+	"removed":   true,
+	"resource":  true,
+	"terraform": true,
+	"variable":  true,
+}
+
+func validateAllowedBlocks(blocks []string) error {
+	for _, b := range blocks {
+		if !validTerraformBlocks[b] {
+			return fmt.Errorf("invalid block type %q in allowed_blocks; valid types are: check, data, import, locals, module, moved, output, provider, removed, resource, terraform, variable", b)
+		}
+	}
+	return nil
+}
+
+var specialFileRules = []struct {
+	Name            string
+	DefaultFilename string
+}{
+	{Name: config.RulePrefix + "_variables_file", DefaultFilename: config.DefaultVariablesFileName},
+	{Name: config.RulePrefix + "_terraform_file", DefaultFilename: config.DefaultTerraformFileName},
+	{Name: config.RulePrefix + "_locals_file", DefaultFilename: config.DefaultLocalsFileName},
+	{Name: config.RulePrefix + "_data_file", DefaultFilename: config.DefaultDataFileName},
+	{Name: config.RulePrefix + "_outputs_file", DefaultFilename: config.DefaultOutputsFileName},
+}
+
+func resolveSpecialFiles(runner tflint.Runner) map[string]bool {
+	files := make(map[string]bool, len(specialFileRules))
+	for _, r := range specialFileRules {
+		var cfg struct {
+			Filename string `hclext:"filename,optional"`
+		}
+		cfg.Filename = r.DefaultFilename
+		if err := runner.DecodeRuleConfig(r.Name, &cfg); err == nil && cfg.Filename != "" {
+			files[cfg.Filename] = true
+		} else {
+			files[r.DefaultFilename] = true
+		}
+	}
+	return files
+}
+
 func ruleLink(suffix string) string {
 	return fmt.Sprintf("https://github.com/Heldroe/tflint-ruleset-terraform-style/blob/main/docs/rules/%s.md", suffix)
 }
 
-func enforceBlockFileBoundary(runner tflint.Runner, rule tflint.Rule, expectedFile, blockType string, maxBlocks int) error {
+func enforceFileAllowedBlocks(runner tflint.Runner, rule tflint.Rule, targetFile string, allowedBlocks []string, maxBlocks map[string]int) error {
+	if err := validateAllowedBlocks(allowedBlocks); err != nil {
+		return err
+	}
+
 	files, err := runner.GetFiles()
 	if err != nil {
 		return err
 	}
 
-	blockCount := 0
+	allowed := make(map[string]bool, len(allowedBlocks))
+	for _, b := range allowedBlocks {
+		allowed[b] = true
+	}
+
+	blockCounts := make(map[string]int)
 	for filename, file := range files {
-		baseName := filepath.Base(filename)
+		if filepath.Base(filename) != targetFile {
+			continue
+		}
 
 		body, ok := file.Body.(*hclsyntax.Body)
 		if !ok {
@@ -31,26 +95,17 @@ func enforceBlockFileBoundary(runner tflint.Runner, rule tflint.Rule, expectedFi
 		}
 
 		for _, b := range body.Blocks {
-			if b.Type == blockType {
-				if baseName != expectedFile {
-					runner.EmitIssue(rule,
-						fmt.Sprintf("%s blocks must be defined in %s", blockType, expectedFile),
-						b.TypeRange,
-					)
-				} else {
-					blockCount++
-					if maxBlocks > 0 && blockCount > maxBlocks {
-						runner.EmitIssue(rule,
-							fmt.Sprintf("only %d %s block(s) allowed in %s; found multiple", maxBlocks, blockType, expectedFile),
-							b.TypeRange,
-						)
-					}
-				}
-			}
-
-			if baseName == expectedFile && b.Type != blockType {
+			if !allowed[b.Type] {
 				runner.EmitIssue(rule,
-					fmt.Sprintf("only %s blocks are allowed in %s; found %s", blockType, expectedFile, b.Type),
+					fmt.Sprintf("only %s blocks are allowed in %s; found %s", strings.Join(allowedBlocks, ", "), targetFile, b.Type),
+					b.TypeRange,
+				)
+				continue
+			}
+			blockCounts[b.Type]++
+			if max, ok := maxBlocks[b.Type]; ok && blockCounts[b.Type] > max {
+				runner.EmitIssue(rule,
+					fmt.Sprintf("only %d %s block(s) allowed in %s; found multiple", max, b.Type, targetFile),
 					b.TypeRange,
 				)
 			}

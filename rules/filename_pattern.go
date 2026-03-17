@@ -46,37 +46,7 @@ func (r *FilenamePatternRule) Check(runner tflint.Runner) error {
 		return err
 	}
 
-	allowedFiles := map[string]bool{
-		config.DefaultVariablesFileName: true,
-		config.DefaultTerraformFileName: true,
-		config.DefaultLocalsFileName:    true,
-		config.DefaultDataFileName:      true,
-		config.DefaultOutputsFileName:   true,
-	}
-
-	otherRules := []struct {
-		Name            string
-		DefaultFilename string
-	}{
-		{Name: config.RulePrefix + "_variables_file", DefaultFilename: config.DefaultVariablesFileName},
-		{Name: config.RulePrefix + "_terraform_file", DefaultFilename: config.DefaultTerraformFileName},
-		{Name: config.RulePrefix + "_locals_file", DefaultFilename: config.DefaultLocalsFileName},
-		{Name: config.RulePrefix + "_data_file", DefaultFilename: config.DefaultDataFileName},
-		{Name: config.RulePrefix + "_outputs_file", DefaultFilename: config.DefaultOutputsFileName},
-	}
-
-	for _, otherRule := range otherRules {
-		var otherRuleConfig struct {
-			Filename string `hclext:"filename,optional"`
-		}
-		otherRuleConfig.Filename = otherRule.DefaultFilename
-
-		if err := runner.DecodeRuleConfig(otherRule.Name, &otherRuleConfig); err == nil {
-			if otherRuleConfig.Filename != "" {
-				allowedFiles[otherRuleConfig.Filename] = true
-			}
-		}
-	}
+	allowedFiles := resolveSpecialFiles(runner)
 
 	files, err := runner.GetFiles()
 	if err != nil {

@@ -33,15 +33,17 @@ func (r *VariablesFileRule) Link() string {
 
 func (r *VariablesFileRule) Check(runner tflint.Runner) error {
 	var ruleConfig struct {
-		Filename string `hclext:"filename,optional"`
+		Filename      string   `hclext:"filename,optional"`
+		AllowedBlocks []string `hclext:"allowed_blocks,optional"`
 	}
 
 	ruleConfig.Filename = config.DefaultVariablesFileName
+	ruleConfig.AllowedBlocks = []string{"variable", "check"}
 
 	if err := runner.DecodeRuleConfig(r.Name(), &ruleConfig); err != nil {
 		return err
 	}
 
 	expected := fmt.Sprintf("%s.tf", ruleConfig.Filename)
-	return enforceBlockFileBoundary(runner, r, expected, "variable", 0)
+	return enforceFileAllowedBlocks(runner, r, expected, ruleConfig.AllowedBlocks, nil)
 }

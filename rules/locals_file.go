@@ -33,15 +33,17 @@ func (r *LocalsFileRule) Link() string {
 
 func (r *LocalsFileRule) Check(runner tflint.Runner) error {
 	var ruleConfig struct {
-		Filename string `hclext:"filename,optional"`
+		Filename      string   `hclext:"filename,optional"`
+		AllowedBlocks []string `hclext:"allowed_blocks,optional"`
 	}
 
 	ruleConfig.Filename = config.DefaultLocalsFileName
+	ruleConfig.AllowedBlocks = []string{"locals"}
 
 	if err := runner.DecodeRuleConfig(r.Name(), &ruleConfig); err != nil {
 		return err
 	}
 
 	expected := fmt.Sprintf("%s.tf", ruleConfig.Filename)
-	return enforceBlockFileBoundary(runner, r, expected, "locals", 1)
+	return enforceFileAllowedBlocks(runner, r, expected, ruleConfig.AllowedBlocks, map[string]int{"locals": 1})
 }
