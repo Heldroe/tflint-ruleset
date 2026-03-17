@@ -10,11 +10,6 @@ import (
 	"github.com/terraform-linters/tflint-plugin-sdk/tflint"
 )
 
-// StructureLayoutRule enforces layout rules for lists and maps.
-// 1. Single-line structures must not have a trailing comma.
-// 2. Multi-line structures must have the closing bracket on its own line.
-// 3. Multi-line structures must have their first element on a new line.
-// 4. Commas must not be at the start of a line.
 type StructureLayoutRule struct {
 	tflint.DefaultRule
 }
@@ -51,92 +46,35 @@ func (r *StructureLayoutRule) Check(runner tflint.Runner) error {
 			continue
 		}
 
-		walkBodyStructure(runner, r, file.Bytes, body)
+		src := file.Bytes
+		visitBodyExprs(body, func(expr hclsyntax.Expression) {
+			switch e := expr.(type) {
+			case *hclsyntax.TupleConsExpr:
+				var firstRange *hcl.Range
+				if len(e.Exprs) > 0 {
+					rng := e.Exprs[0].Range()
+					firstRange = &rng
+				}
+				checkStructure(runner, r, src, e.Range(), "]", firstRange)
+			case *hclsyntax.ObjectConsExpr:
+				var firstRange *hcl.Range
+				if len(e.Items) > 0 {
+					rng := e.Items[0].KeyExpr.Range()
+					firstRange = &rng
+				}
+				checkStructure(runner, r, src, e.Range(), "}", firstRange)
+			}
+		})
 	}
 
 	return nil
 }
 
-func walkBodyStructure(runner tflint.Runner, rule tflint.Rule, src []byte, body *hclsyntax.Body) {
-	for _, attr := range body.Attributes {
-		walkExprStructure(runner, rule, src, attr.Expr)
-	}
-	for _, block := range body.Blocks {
-		walkBodyStructure(runner, rule, src, block.Body)
-	}
-}
-
-func walkExprStructure(runner tflint.Runner, rule tflint.Rule, src []byte, expr hclsyntax.Expression) {
-	switch e := expr.(type) {
-	case *hclsyntax.TupleConsExpr:
-		var firstRange *hcl.Range
-		if len(e.Exprs) > 0 {
-			r := e.Exprs[0].Range()
-			firstRange = &r
-		}
-		checkStructure(runner, rule, src, e.Range(), "]", firstRange)
-		for _, item := range e.Exprs {
-			walkExprStructure(runner, rule, src, item)
-		}
-	case *hclsyntax.ObjectConsExpr:
-		var firstRange *hcl.Range
-		if len(e.Items) > 0 {
-			r := e.Items[0].KeyExpr.Range()
-			firstRange = &r
-		}
-		checkStructure(runner, rule, src, e.Range(), "}", firstRange)
-		for _, item := range e.Items {
-			walkExprStructure(runner, rule, src, item.KeyExpr)
-			walkExprStructure(runner, rule, src, item.ValueExpr)
-		}
-	// Recursive traversal for other expressions
-	case *hclsyntax.FunctionCallExpr:
-		for _, arg := range e.Args {
-			walkExprStructure(runner, rule, src, arg)
-		}
-	case *hclsyntax.ConditionalExpr:
-		walkExprStructure(runner, rule, src, e.Condition)
-		walkExprStructure(runner, rule, src, e.TrueResult)
-		walkExprStructure(runner, rule, src, e.FalseResult)
-	case *hclsyntax.ForExpr:
-		walkExprStructure(runner, rule, src, e.CollExpr)
-		if e.KeyExpr != nil {
-			walkExprStructure(runner, rule, src, e.KeyExpr)
-		}
-		walkExprStructure(runner, rule, src, e.ValExpr)
-		if e.CondExpr != nil {
-			walkExprStructure(runner, rule, src, e.CondExpr)
-		}
-	case *hclsyntax.ParenthesesExpr:
-		walkExprStructure(runner, rule, src, e.Expression)
-	case *hclsyntax.BinaryOpExpr:
-		walkExprStructure(runner, rule, src, e.LHS)
-		walkExprStructure(runner, rule, src, e.RHS)
-	case *hclsyntax.UnaryOpExpr:
-		walkExprStructure(runner, rule, src, e.Val)
-	case *hclsyntax.IndexExpr:
-		walkExprStructure(runner, rule, src, e.Collection)
-		walkExprStructure(runner, rule, src, e.Key)
-	case *hclsyntax.SplatExpr:
-		walkExprStructure(runner, rule, src, e.Source)
-	case *hclsyntax.TemplateExpr:
-		for _, part := range e.Parts {
-			walkExprStructure(runner, rule, src, part)
-		}
-	case *hclsyntax.TemplateWrapExpr:
-		walkExprStructure(runner, rule, src, e.Wrapped)
-	}
-}
-
-// checkStructure checks layout for a generic list/map expression
-// bracketChar is "]" or "}"
 func checkStructure(runner tflint.Runner, rule tflint.Rule, src []byte, rng hcl.Range, bracketChar string, firstItemRange *hcl.Range) {
 	startLine := rng.Start.Line
 	endLine := rng.End.Line
 
-	// 1. Single-line check
 	if startLine == endLine {
-		// Check for trailing comma
 		endByte := rng.End.Byte
 		if endByte > len(src) {
 			return
@@ -162,7 +100,6 @@ func checkStructure(runner tflint.Runner, rule tflint.Rule, src []byte, rng hcl.
 			}
 			if b == ',' {
 				foundComma = true
-				break
 			}
 			break
 		}
@@ -177,22 +114,18 @@ func checkStructure(runner tflint.Runner, rule tflint.Rule, src []byte, rng hcl.
 		return
 	}
 
-	// 2. Multi-line check: First element on its own line
-	if firstItemRange != nil {
-		if firstItemRange.Start.Line == startLine {
-			runner.EmitIssue(
-				rule,
-				"for multi-line structures, the first element must be on a new line",
-				hcl.Range{
-					Filename: firstItemRange.Filename,
-					Start:    firstItemRange.Start,
-					End:      hcl.Pos{Line: firstItemRange.Start.Line, Column: firstItemRange.Start.Column + 1, Byte: firstItemRange.Start.Byte + 1},
-				},
-			)
-		}
+	if firstItemRange != nil && firstItemRange.Start.Line == startLine {
+		runner.EmitIssue(
+			rule,
+			"for multi-line structures, the first element must be on a new line",
+			hcl.Range{
+				Filename: firstItemRange.Filename,
+				Start:    firstItemRange.Start,
+				End:      hcl.Pos{Line: firstItemRange.Start.Line, Column: firstItemRange.Start.Column + 1, Byte: firstItemRange.Start.Byte + 1},
+			},
+		)
 	}
 
-	// 3. Multi-line check: Closing bracket on own line
 	closeBracketIdx := -1
 	for i := rng.End.Byte - 1; i >= rng.Start.Byte; i-- {
 		if i < len(src) && src[i] == bracketChar[0] {
@@ -225,7 +158,6 @@ func checkStructure(runner tflint.Runner, rule tflint.Rule, src []byte, rng hcl.
 		}
 	}
 
-	// 4. Comma placement check
 	if rng.End.Byte <= len(src) {
 		text := src[rng.Start.Byte:rng.End.Byte]
 		lines := bytes.Split(text, []byte("\n"))
@@ -247,10 +179,10 @@ func checkStructure(runner tflint.Runner, rule tflint.Rule, src []byte, rng hcl.
 							End:      hcl.Pos{Line: currentLine, Column: col + 1, Byte: commaOffset + 1},
 						},
 					)
-					break 
+					break
 				}
 			}
-			currentOffset += len(line) + 1 // +1 for newline
+			currentOffset += len(line) + 1
 			currentLine++
 		}
 	}

@@ -11,13 +11,21 @@ type DataFileRule struct {
 	tflint.DefaultRule
 }
 
-func NewDataFileRule() *DataFileRule { return &DataFileRule{} }
+func NewDataFileRule() *DataFileRule {
+	return &DataFileRule{}
+}
 
-func (r *DataFileRule) Name() string { return config.RulePrefix + "_data_file" }
+func (r *DataFileRule) Name() string {
+	return config.RulePrefix + "_data_file"
+}
 
-func (r *DataFileRule) Enabled() bool { return true }
+func (r *DataFileRule) Enabled() bool {
+	return true
+}
 
-func (r *DataFileRule) Severity() tflint.Severity { return severity() }
+func (r *DataFileRule) Severity() tflint.Severity {
+	return tflint.ERROR
+}
 
 func (r *DataFileRule) Link() string {
 	return ruleLink("data_file")

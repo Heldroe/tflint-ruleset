@@ -12,6 +12,7 @@ func TestNoBackendBlockRule(t *testing.T) {
 		name     string
 		files    map[string]string
 		expected int
+		messages []string
 	}{
 		{
 			name: "valid: no backend block",
@@ -21,6 +22,13 @@ terraform {
   required_version = ">= 1.0"
 }
 `,
+			},
+			expected: 0,
+		},
+		{
+			name: "valid: non-terraform block ignored",
+			files: map[string]string{
+				"main.tf": `resource "null_resource" "foo" {}`,
 			},
 			expected: 0,
 		},
@@ -36,9 +44,10 @@ terraform {
 `,
 			},
 			expected: 1,
+			messages: []string{"backend configuration is not allowed in the terraform block"},
 		},
 		{
-			name: "invalid: multiple backend blocks (should not happen in valid TF but rule should catch all)",
+			name: "invalid: multiple backend blocks",
 			files: map[string]string{
 				"01-terraform.tf": `
 terraform {
@@ -48,6 +57,10 @@ terraform {
 `,
 			},
 			expected: 2,
+			messages: []string{
+				"backend configuration is not allowed in the terraform block",
+				"backend configuration is not allowed in the terraform block",
+			},
 		},
 	}
 
@@ -60,9 +73,7 @@ terraform {
 				t.Fatalf("unexpected error: %s", err)
 			}
 
-			if len(runner.Issues) != tc.expected {
-				t.Errorf("%s: expected %d issues, got %d", tc.name, tc.expected, len(runner.Issues))
-			}
+			assertIssues(t, runner, tc.expected, tc.messages)
 		})
 	}
 }

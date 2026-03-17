@@ -11,13 +11,21 @@ type VariablesFileRule struct {
 	tflint.DefaultRule
 }
 
-func NewVariablesFileRule() *VariablesFileRule { return &VariablesFileRule{} }
+func NewVariablesFileRule() *VariablesFileRule {
+	return &VariablesFileRule{}
+}
 
-func (r *VariablesFileRule) Name() string { return config.RulePrefix + "_variables_file" }
+func (r *VariablesFileRule) Name() string {
+	return config.RulePrefix + "_variables_file"
+}
 
-func (r *VariablesFileRule) Enabled() bool { return true }
+func (r *VariablesFileRule) Enabled() bool {
+	return true
+}
 
-func (r *VariablesFileRule) Severity() tflint.Severity { return severity() }
+func (r *VariablesFileRule) Severity() tflint.Severity {
+	return tflint.ERROR
+}
 
 func (r *VariablesFileRule) Link() string {
 	return ruleLink("variables_file")

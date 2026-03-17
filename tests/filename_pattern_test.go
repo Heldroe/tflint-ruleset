@@ -12,6 +12,7 @@ func TestFilenamePatternRule(t *testing.T) {
 		name     string
 		files    map[string]string
 		expected int
+		messages []string
 	}{
 		{
 			name: "valid filename (index >= 10)",
@@ -56,11 +57,19 @@ func TestFilenamePatternRule(t *testing.T) {
 			expected: 0,
 		},
 		{
+			name: "valid high index filename",
+			files: map[string]string{
+				"50-networking.tf": "",
+			},
+			expected: 0,
+		},
+		{
 			name: "invalid filename - too low index (e.g. 05-foo.tf)",
 			files: map[string]string{
 				"05-foo.tf": "",
 			},
 			expected: 1,
+			messages: []string{"custom file index must be >= 10 (found 05)"},
 		},
 		{
 			name: "invalid filename - too low index (e.g. 00-custom.tf)",
@@ -68,6 +77,7 @@ func TestFilenamePatternRule(t *testing.T) {
 				"00-custom.tf": "",
 			},
 			expected: 1,
+			messages: []string{"custom file index must be >= 10 (found 00)"},
 		},
 		{
 			name: "invalid filename - no prefix (e.g. main.tf)",
@@ -75,6 +85,7 @@ func TestFilenamePatternRule(t *testing.T) {
 				"main.tf": "",
 			},
 			expected: 1,
+			messages: []string{"terraform file name must match XX-name.tf"},
 		},
 		{
 			name: "invalid filename - uppercase (e.g. 10-TERRAFORM.tf)",
@@ -82,6 +93,7 @@ func TestFilenamePatternRule(t *testing.T) {
 				"10-TERRAFORM.tf": "",
 			},
 			expected: 1,
+			messages: []string{"terraform file name must match XX-name.tf"},
 		},
 		{
 			name: "invalid filename - underscore (e.g. 02_locals.tf)",
@@ -89,6 +101,7 @@ func TestFilenamePatternRule(t *testing.T) {
 				"02_locals.tf": "",
 			},
 			expected: 1,
+			messages: []string{"terraform file name must match XX-name.tf"},
 		},
 	}
 
@@ -101,10 +114,7 @@ func TestFilenamePatternRule(t *testing.T) {
 				t.Fatalf("unexpected error: %s", err)
 			}
 
-			issues := runner.Issues
-			if len(issues) != tc.expected {
-				t.Errorf("expected %d issues, got %d", tc.expected, len(issues))
-			}
+			assertIssues(t, runner, tc.expected, tc.messages)
 		})
 	}
 }

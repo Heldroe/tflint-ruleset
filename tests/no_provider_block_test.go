@@ -12,27 +12,30 @@ func TestNoProviderBlockRule(t *testing.T) {
 		name     string
 		files    map[string]string
 		expected int
+		messages []string
 	}{
 		{
 			name: "valid: no provider block",
 			files: map[string]string{
-				"main.tf": "resource \"null_resource\" \"foo\" {}",
+				"main.tf": `resource "null_resource" "foo" {}`,
 			},
 			expected: 0,
 		},
 		{
 			name: "invalid: provider block in main.tf",
 			files: map[string]string{
-				"main.tf": "provider \"aws\" {}",
+				"main.tf": `provider "aws" {}`,
 			},
 			expected: 1,
+			messages: []string{"provider blocks are not allowed"},
 		},
 		{
 			name: "invalid: provider block in provider.tf",
 			files: map[string]string{
-				"provider.tf": "provider \"aws\" {}",
+				"provider.tf": `provider "aws" {}`,
 			},
 			expected: 1,
+			messages: []string{"provider blocks are not allowed"},
 		},
 		{
 			name: "invalid: multiple provider blocks",
@@ -45,6 +48,10 @@ provider "google" {}
 `,
 			},
 			expected: 2,
+			messages: []string{
+				"provider blocks are not allowed",
+				"provider blocks are not allowed",
+			},
 		},
 	}
 
@@ -57,9 +64,7 @@ provider "google" {}
 				t.Fatalf("unexpected error: %s", err)
 			}
 
-			if len(runner.Issues) != tc.expected {
-				t.Errorf("%s: expected %d issues, got %d", tc.name, tc.expected, len(runner.Issues))
-			}
+			assertIssues(t, runner, tc.expected, tc.messages)
 		})
 	}
 }
