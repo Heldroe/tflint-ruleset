@@ -9,7 +9,7 @@ To use this plugin, you can declare it in your `.tflint.hcl` file:
 ```hcl
 plugin "terraform-style" {
   enabled = true
-  version = "0.2.0"
+  version = "0.2.1"
   source  = "github.com/Heldroe/tflint-ruleset-terraform-style"
 }
 ```
