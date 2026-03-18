@@ -69,15 +69,28 @@ func (r *BlockSpacingRule) Check(runner tflint.Runner) error {
 			lines := strings.Split(gap, "\n")
 
 			blankLineCount := 0
+			maxConsecutiveBlanks := 0
+			consecutiveBlanks := 0
+			hasNonCommentContent := false
 			if len(lines) > 2 {
 				for _, line := range lines[1 : len(lines)-1] {
-					if strings.TrimSpace(line) == "" {
+					trimmed := strings.TrimSpace(line)
+					if trimmed == "" {
 						blankLineCount++
+						consecutiveBlanks++
+						if consecutiveBlanks > maxConsecutiveBlanks {
+							maxConsecutiveBlanks = consecutiveBlanks
+						}
+					} else {
+						consecutiveBlanks = 0
+						if !strings.HasPrefix(trimmed, "#") && !strings.HasPrefix(trimmed, "//") && !strings.HasPrefix(trimmed, "/*") {
+							hasNonCommentContent = true
+						}
 					}
 				}
 			}
 
-			if blankLineCount != 1 {
+			if blankLineCount < 1 || maxConsecutiveBlanks > 1 || hasNonCommentContent {
 				runner.EmitIssue(r,
 					"blocks must be separated by exactly one blank line",
 					curr.TypeRange,

@@ -98,6 +98,28 @@ func TestBlockSpacingRule(t *testing.T) {
 			expected: 1,
 			messages: []string{"blocks must be separated by exactly one blank line"},
 		},
+		{
+			name: "valid spacing with comment between blocks",
+			files: map[string]string{
+				"main.tf": "resource \"null_resource\" \"a\" {}\n\n# comment\n\nresource \"null_resource\" \"b\" {}\n",
+			},
+			expected: 0,
+		},
+		{
+			name: "valid spacing with multiple comment lines between blocks",
+			files: map[string]string{
+				"main.tf": "resource \"null_resource\" \"a\" {}\n\n# line 1\n# line 2\n\nresource \"null_resource\" \"b\" {}\n",
+			},
+			expected: 0,
+		},
+		{
+			name: "invalid spacing with comment but too many blank lines",
+			files: map[string]string{
+				"main.tf": "resource \"null_resource\" \"a\" {}\n\n\n# comment\n\nresource \"null_resource\" \"b\" {}\n",
+			},
+			expected: 1,
+			messages: []string{"blocks must be separated by exactly one blank line"},
+		},
 	}
 
 	for _, tc := range tests {
