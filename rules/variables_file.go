@@ -11,13 +11,21 @@ type VariablesFileRule struct {
 	tflint.DefaultRule
 }
 
-func NewVariablesFileRule() *VariablesFileRule { return &VariablesFileRule{} }
+func NewVariablesFileRule() *VariablesFileRule {
+	return &VariablesFileRule{}
+}
 
-func (r *VariablesFileRule) Name() string { return config.RulePrefix + "_variables_file" }
+func (r *VariablesFileRule) Name() string {
+	return config.RulePrefix + "_variables_file"
+}
 
-func (r *VariablesFileRule) Enabled() bool { return true }
+func (r *VariablesFileRule) Enabled() bool {
+	return true
+}
 
-func (r *VariablesFileRule) Severity() tflint.Severity { return severity() }
+func (r *VariablesFileRule) Severity() tflint.Severity {
+	return tflint.ERROR
+}
 
 func (r *VariablesFileRule) Link() string {
 	return ruleLink("variables_file")
@@ -25,15 +33,17 @@ func (r *VariablesFileRule) Link() string {
 
 func (r *VariablesFileRule) Check(runner tflint.Runner) error {
 	var ruleConfig struct {
-		Filename string `hclext:"filename,optional"`
+		Filename      string   `hclext:"filename,optional"`
+		AllowedBlocks []string `hclext:"allowed_blocks,optional"`
 	}
 
 	ruleConfig.Filename = config.DefaultVariablesFileName
+	ruleConfig.AllowedBlocks = []string{"variable", "check"}
 
 	if err := runner.DecodeRuleConfig(r.Name(), &ruleConfig); err != nil {
 		return err
 	}
 
 	expected := fmt.Sprintf("%s.tf", ruleConfig.Filename)
-	return enforceBlockFileBoundary(runner, r, expected, "variable", 0)
+	return enforceFileAllowedBlocks(runner, r, expected, ruleConfig.AllowedBlocks, nil)
 }

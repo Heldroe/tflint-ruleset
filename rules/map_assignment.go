@@ -8,7 +8,6 @@ import (
 	"github.com/terraform-linters/tflint-plugin-sdk/tflint"
 )
 
-// MapAssignmentRule checks that maps use '=' instead of ':'.
 type MapAssignmentRule struct {
 	tflint.DefaultRule
 }
@@ -45,69 +44,15 @@ func (r *MapAssignmentRule) Check(runner tflint.Runner) error {
 			continue
 		}
 
-		walkBodyMapAssignment(runner, r, file.Bytes, body)
+		src := file.Bytes
+		visitBodyExprs(body, func(expr hclsyntax.Expression) {
+			if e, ok := expr.(*hclsyntax.ObjectConsExpr); ok {
+				checkMapAssignment(runner, r, src, e)
+			}
+		})
 	}
 
 	return nil
-}
-
-func walkBodyMapAssignment(runner tflint.Runner, rule tflint.Rule, src []byte, body *hclsyntax.Body) {
-	for _, attr := range body.Attributes {
-		walkExprMapAssignment(runner, rule, src, attr.Expr)
-	}
-	for _, block := range body.Blocks {
-		walkBodyMapAssignment(runner, rule, src, block.Body)
-	}
-}
-
-func walkExprMapAssignment(runner tflint.Runner, rule tflint.Rule, src []byte, expr hclsyntax.Expression) {
-	switch e := expr.(type) {
-	case *hclsyntax.TupleConsExpr:
-		for _, item := range e.Exprs {
-			walkExprMapAssignment(runner, rule, src, item)
-		}
-	case *hclsyntax.ObjectConsExpr:
-		checkMapAssignment(runner, rule, src, e)
-		for _, item := range e.Items {
-			walkExprMapAssignment(runner, rule, src, item.KeyExpr)
-			walkExprMapAssignment(runner, rule, src, item.ValueExpr)
-		}
-	case *hclsyntax.FunctionCallExpr:
-		for _, arg := range e.Args {
-			walkExprMapAssignment(runner, rule, src, arg)
-		}
-	case *hclsyntax.ConditionalExpr:
-		walkExprMapAssignment(runner, rule, src, e.Condition)
-		walkExprMapAssignment(runner, rule, src, e.TrueResult)
-		walkExprMapAssignment(runner, rule, src, e.FalseResult)
-	case *hclsyntax.ForExpr:
-		walkExprMapAssignment(runner, rule, src, e.CollExpr)
-		if e.KeyExpr != nil {
-			walkExprMapAssignment(runner, rule, src, e.KeyExpr)
-		}
-		walkExprMapAssignment(runner, rule, src, e.ValExpr)
-		if e.CondExpr != nil {
-			walkExprMapAssignment(runner, rule, src, e.CondExpr)
-		}
-	case *hclsyntax.ParenthesesExpr:
-		walkExprMapAssignment(runner, rule, src, e.Expression)
-	case *hclsyntax.BinaryOpExpr:
-		walkExprMapAssignment(runner, rule, src, e.LHS)
-		walkExprMapAssignment(runner, rule, src, e.RHS)
-	case *hclsyntax.UnaryOpExpr:
-		walkExprMapAssignment(runner, rule, src, e.Val)
-	case *hclsyntax.IndexExpr:
-		walkExprMapAssignment(runner, rule, src, e.Collection)
-		walkExprMapAssignment(runner, rule, src, e.Key)
-	case *hclsyntax.SplatExpr:
-		walkExprMapAssignment(runner, rule, src, e.Source)
-	case *hclsyntax.TemplateExpr:
-		for _, part := range e.Parts {
-			walkExprMapAssignment(runner, rule, src, part)
-		}
-	case *hclsyntax.TemplateWrapExpr:
-		walkExprMapAssignment(runner, rule, src, e.Wrapped)
-	}
 }
 
 func checkMapAssignment(runner tflint.Runner, rule tflint.Rule, src []byte, expr *hclsyntax.ObjectConsExpr) {
@@ -119,9 +64,7 @@ func checkMapAssignment(runner tflint.Runner, rule tflint.Rule, src []byte, expr
 			continue
 		}
 
-		// Text between key and value
 		gap := src[keyEnd:valStart]
-
 		if bytes.Contains(gap, []byte(":")) {
 			runner.EmitIssue(
 				rule,

@@ -1,40 +1,49 @@
 package rules
 
 import (
-    "fmt"
+	"fmt"
 
-    "github.com/Heldroe/tflint-ruleset-terraform-style/internal/config"
-    "github.com/terraform-linters/tflint-plugin-sdk/tflint"
+	"github.com/Heldroe/tflint-ruleset-terraform-style/internal/config"
+	"github.com/terraform-linters/tflint-plugin-sdk/tflint"
 )
 
 type OutputsFileRule struct {
-    tflint.DefaultRule
+	tflint.DefaultRule
 }
 
-func NewOutputsFileRule() *OutputsFileRule { return &OutputsFileRule{} }
+func NewOutputsFileRule() *OutputsFileRule {
+	return &OutputsFileRule{}
+}
 
-func (r *OutputsFileRule) Name() string { return config.RulePrefix + "_outputs_file" }
+func (r *OutputsFileRule) Name() string {
+	return config.RulePrefix + "_outputs_file"
+}
 
-func (r *OutputsFileRule) Enabled() bool { return true }
+func (r *OutputsFileRule) Enabled() bool {
+	return true
+}
 
-func (r *OutputsFileRule) Severity() tflint.Severity { return severity() }
+func (r *OutputsFileRule) Severity() tflint.Severity {
+	return tflint.ERROR
+}
 
 func (r *OutputsFileRule) Link() string {
 	return ruleLink("outputs_file")
 }
 
 func (r *OutputsFileRule) Check(runner tflint.Runner) error {
-    var ruleConfig struct {
-        Filename string `hclext:"filename,optional"`
-    }
+	var ruleConfig struct {
+		Filename      string   `hclext:"filename,optional"`
+		AllowedBlocks []string `hclext:"allowed_blocks,optional"`
+	}
 
-    ruleConfig.Filename = config.DefaultOutputsFileName
+	ruleConfig.Filename = config.DefaultOutputsFileName
+	ruleConfig.AllowedBlocks = []string{"output"}
 
-    if err := runner.DecodeRuleConfig(r.Name(), &ruleConfig); err != nil {
-        return err
-    }
+	if err := runner.DecodeRuleConfig(r.Name(), &ruleConfig); err != nil {
+		return err
+	}
 
-    expected := fmt.Sprintf("%s.tf", ruleConfig.Filename)
-    return enforceBlockFileBoundary(runner, r, expected, "output", 0)
-    }
-
+	expected := fmt.Sprintf("%s.tf", ruleConfig.Filename)
+	return enforceFileAllowedBlocks(runner, r, expected, ruleConfig.AllowedBlocks, nil)
+}

@@ -10,7 +10,6 @@ import (
 	"github.com/terraform-linters/tflint-plugin-sdk/tflint"
 )
 
-// ResourceArgumentsRule checks ordering and spacing of arguments/blocks.
 type ResourceArgumentsRule struct {
 	tflint.DefaultRule
 }
@@ -47,20 +46,20 @@ func (r *ResourceArgumentsRule) Check(runner tflint.Runner) error {
 			continue
 		}
 
-		walkBodyResourceArguments(runner, r, file.Bytes, body)
+		walkBlocksResourceArguments(runner, r, file.Bytes, body)
 	}
 
 	return nil
 }
 
-func walkBodyResourceArguments(runner tflint.Runner, rule tflint.Rule, src []byte, body *hclsyntax.Body) {
+func walkBlocksResourceArguments(runner tflint.Runner, rule tflint.Rule, src []byte, body *hclsyntax.Body) {
 	for _, block := range body.Blocks {
 		checkBlockArguments(runner, rule, src, block)
-		walkBodyResourceArguments(runner, rule, src, block.Body)
+		walkBlocksResourceArguments(runner, rule, src, block.Body)
 	}
 }
 
-type Item struct {
+type blockItem struct {
 	Name      string
 	Type      string // "attribute" or "block"
 	Range     hcl.Range
@@ -68,10 +67,9 @@ type Item struct {
 }
 
 func checkBlockArguments(runner tflint.Runner, rule tflint.Rule, src []byte, block *hclsyntax.Block) {
-	// Collect all items
-	var items []Item
+	var items []blockItem
 	for name, attr := range block.Body.Attributes {
-		items = append(items, Item{
+		items = append(items, blockItem{
 			Name:      name,
 			Type:      "attribute",
 			Range:     attr.Range(),
@@ -79,16 +77,12 @@ func checkBlockArguments(runner tflint.Runner, rule tflint.Rule, src []byte, blo
 		})
 	}
 	for _, b := range block.Body.Blocks {
-		start := b.TypeRange.Start
-		end := b.Body.SrcRange.End
-		
 		fullRange := hcl.Range{
 			Filename: b.TypeRange.Filename,
-			Start:    start,
-			End:      end,
+			Start:    b.TypeRange.Start,
+			End:      b.Body.SrcRange.End,
 		}
-		
-		items = append(items, Item{
+		items = append(items, blockItem{
 			Name:      b.Type,
 			Type:      "block",
 			Range:     fullRange,
@@ -104,7 +98,6 @@ func checkBlockArguments(runner tflint.Runner, rule tflint.Rule, src []byte, blo
 		return
 	}
 
-	// Rule 1: count & for_each first
 	firstIdx := 0
 	for i, item := range items {
 		if item.Name == "count" || item.Name == "for_each" {
@@ -114,7 +107,7 @@ func checkBlockArguments(runner tflint.Runner, rule tflint.Rule, src []byte, blo
 					prev := items[0]
 					if prev.Name == "count" || prev.Name == "for_each" {
 						isOk = true
-						firstIdx = 1 
+						firstIdx = 1
 					}
 				}
 				if !isOk {
@@ -125,17 +118,14 @@ func checkBlockArguments(runner tflint.Runner, rule tflint.Rule, src []byte, blo
 					)
 				}
 			} else {
-				// Check empty line after
 				if i+1 < len(items) {
-					next := items[i+1]
-					checkEmptyLineAfter(runner, rule, src, item, next)
+					checkEmptyLineAfter(runner, rule, src, item, items[i+1])
 				}
 				firstIdx++
 			}
 		}
 	}
 
-	// Rule: module source
 	if block.Type == "module" {
 		for i, item := range items {
 			if item.Name == "source" {
@@ -154,13 +144,9 @@ func checkBlockArguments(runner tflint.Runner, rule tflint.Rule, src []byte, blo
 		}
 	}
 
-	// Rule: 'depends_on' last (after 'lifecycle')
-	// Rule: 'lifecycle' block last (before 'depends_on')
-	
 	lastIdx := len(items) - 1
 	hasDependsOn := false
-	
-	// Check depends_on position
+
 	for i, item := range items {
 		if item.Name == "depends_on" {
 			hasDependsOn = true
@@ -171,15 +157,12 @@ func checkBlockArguments(runner tflint.Runner, rule tflint.Rule, src []byte, blo
 					item.EmitRange,
 				)
 			}
-			// Check empty line above
 			if i > 0 {
-				prev := items[i-1]
-				checkEmptyLineAbove(runner, rule, src, prev, item)
+				checkEmptyLineAbove(runner, rule, src, items[i-1], item)
 			}
 		}
 	}
 
-	// Check lifecycle position
 	for i, item := range items {
 		if item.Name == "lifecycle" && item.Type == "block" {
 			expectedIdx := lastIdx
@@ -197,44 +180,41 @@ func checkBlockArguments(runner tflint.Runner, rule tflint.Rule, src []byte, blo
 	}
 }
 
-func checkEmptyLineAfter(runner tflint.Runner, rule tflint.Rule, src []byte, current, next Item) {
+func checkEmptyLineAfter(runner tflint.Runner, rule tflint.Rule, src []byte, current, next blockItem) {
 	start := current.Range.End.Byte
 	end := next.Range.Start.Byte
-	
+
 	if start >= end || start >= len(src) {
 		return
 	}
-	
+
 	gap := src[start:end]
-	
-	// Count newlines. We expect at least one BLANK line.
-	// So 2 newlines minimum.
 	newlines := strings.Count(string(gap), "\n")
-	
+
 	if newlines < 2 {
 		runner.EmitIssue(
 			rule,
-			"there must be an empty blank line after " + current.Name,
+			"there must be an empty blank line after "+current.Name,
 			current.EmitRange,
 		)
 	}
 }
 
-func checkEmptyLineAbove(runner tflint.Runner, rule tflint.Rule, src []byte, prev, current Item) {
+func checkEmptyLineAbove(runner tflint.Runner, rule tflint.Rule, src []byte, prev, current blockItem) {
 	start := prev.Range.End.Byte
 	end := current.Range.Start.Byte
-	
+
 	if start >= end || start >= len(src) {
 		return
 	}
 
 	gap := src[start:end]
 	newlines := strings.Count(string(gap), "\n")
-	
+
 	if newlines < 2 {
 		runner.EmitIssue(
 			rule,
-			"there must be an empty blank line above " + current.Name,
+			"there must be an empty blank line above "+current.Name,
 			current.EmitRange,
 		)
 	}

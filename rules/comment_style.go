@@ -9,7 +9,6 @@ import (
 	"github.com/terraform-linters/tflint-plugin-sdk/tflint"
 )
 
-// CommentStyleRule enforces comment style: only '#' allowed, single space required.
 type CommentStyleRule struct {
 	tflint.DefaultRule
 }
@@ -43,7 +42,7 @@ func (r *CommentStyleRule) Check(runner tflint.Runner) error {
 	for name, file := range files {
 		tokens, diags := hclsyntax.LexConfig(file.Bytes, name, hcl.InitialPos)
 		if diags.HasErrors() {
-			continue // Skip files that don't parse cleanly (TFLint might handle them elsewhere)
+			continue
 		}
 
 		for _, token := range tokens {
@@ -58,8 +57,7 @@ func (r *CommentStyleRule) Check(runner tflint.Runner) error {
 
 func checkComment(runner tflint.Runner, rule tflint.Rule, token hclsyntax.Token) {
 	text := string(token.Bytes)
-	
-	// Rule 1: Only '#' allowed
+
 	if strings.HasPrefix(text, "//") || strings.HasPrefix(text, "/*") {
 		runner.EmitIssue(
 			rule,
@@ -69,36 +67,31 @@ func checkComment(runner tflint.Runner, rule tflint.Rule, token hclsyntax.Token)
 		return
 	}
 
-	if strings.HasPrefix(text, "#") {
-		// Rule 2: Single space required after '#', unless all '#'
-		content := text[1:] // Strip leading '#'
-		
-		// Trim trailing whitespace (newline etc)
-		content = strings.TrimRight(content, " \t\r\n")
-		
-		if len(content) == 0 {
-			return
-		}
-		
-		// Check if it's all '#'
-		allHashes := true
-		for _, r := range content {
-			if r != '#' {
-				allHashes = false
-				break
-			}
-		}
-		if allHashes {
-			return
-		}
+	if !strings.HasPrefix(text, "#") {
+		return
+	}
 
-		// Check for space
-		if !strings.HasPrefix(content, " ") {
-			runner.EmitIssue(
-				rule,
-				"there must be a single space between the '#' and the beginning of the comment",
-				token.Range,
-			)
+	content := strings.TrimRight(text[1:], " \t\r\n")
+	if len(content) == 0 {
+		return
+	}
+
+	allHashes := true
+	for _, ch := range content {
+		if ch != '#' {
+			allHashes = false
+			break
 		}
+	}
+	if allHashes {
+		return
+	}
+
+	if !strings.HasPrefix(content, " ") {
+		runner.EmitIssue(
+			rule,
+			"there must be a single space between the '#' and the beginning of the comment",
+			token.Range,
+		)
 	}
 }

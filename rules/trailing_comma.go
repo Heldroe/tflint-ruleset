@@ -7,7 +7,6 @@ import (
 	"github.com/terraform-linters/tflint-plugin-sdk/tflint"
 )
 
-// TrailingCommaRule checks for trailing commas in lists and maps.
 type TrailingCommaRule struct {
 	tflint.DefaultRule
 }
@@ -33,7 +32,6 @@ func (r *TrailingCommaRule) Link() string {
 }
 
 func (r *TrailingCommaRule) Check(runner tflint.Runner) error {
-
 	ruleConfig := struct {
 		ExcludeSingleElement bool `hclext:"exclude_single_element,optional"`
 	}{
@@ -55,83 +53,19 @@ func (r *TrailingCommaRule) Check(runner tflint.Runner) error {
 			continue
 		}
 
-		// Recursively check expressions
-		walkBody(runner, r, file.Bytes, body, ruleConfig.ExcludeSingleElement)
+		src := file.Bytes
+		exclude := ruleConfig.ExcludeSingleElement
+		visitBodyExprs(body, func(expr hclsyntax.Expression) {
+			switch e := expr.(type) {
+			case *hclsyntax.TupleConsExpr:
+				checkList(runner, r, src, e, exclude)
+			case *hclsyntax.ObjectConsExpr:
+				checkMap(runner, r, src, e, exclude)
+			}
+		})
 	}
 
 	return nil
-}
-
-
-func walkBody(runner tflint.Runner, rule tflint.Rule, src []byte, body *hclsyntax.Body, excludeSingle bool) {
-	for _, attr := range body.Attributes {
-		walkExpr(runner, rule, src, attr.Expr, excludeSingle)
-	}
-	for _, block := range body.Blocks {
-		walkBody(runner, rule, src, block.Body, excludeSingle)
-	}
-}
-
-func walkExpr(runner tflint.Runner, rule tflint.Rule, src []byte, expr hclsyntax.Expression, excludeSingle bool) {
-	switch e := expr.(type) {
-	case *hclsyntax.TupleConsExpr: // List: [ ... ]
-		checkList(runner, rule, src, e, excludeSingle)
-		for _, item := range e.Exprs {
-			walkExpr(runner, rule, src, item, excludeSingle)
-		}
-	case *hclsyntax.ObjectConsExpr: // Map/Object: { ... }
-		checkMap(runner, rule, src, e, excludeSingle)
-		for _, item := range e.Items {
-			walkExpr(runner, rule, src, item.KeyExpr, excludeSingle)
-			walkExpr(runner, rule, src, item.ValueExpr, excludeSingle)
-		}
-	case *hclsyntax.FunctionCallExpr:
-		for _, arg := range e.Args {
-			walkExpr(runner, rule, src, arg, excludeSingle)
-		}
-	case *hclsyntax.ConditionalExpr:
-		walkExpr(runner, rule, src, e.Condition, excludeSingle)
-		walkExpr(runner, rule, src, e.TrueResult, excludeSingle)
-		walkExpr(runner, rule, src, e.FalseResult, excludeSingle)
-	case *hclsyntax.ForExpr:
-		walkExpr(runner, rule, src, e.CollExpr, excludeSingle)
-		if e.KeyExpr != nil {
-			walkExpr(runner, rule, src, e.KeyExpr, excludeSingle)
-		}
-		walkExpr(runner, rule, src, e.ValExpr, excludeSingle)
-		if e.CondExpr != nil {
-			walkExpr(runner, rule, src, e.CondExpr, excludeSingle)
-		}
-	case *hclsyntax.ParenthesesExpr:
-		walkExpr(runner, rule, src, e.Expression, excludeSingle)
-	case *hclsyntax.BinaryOpExpr:
-		walkExpr(runner, rule, src, e.LHS, excludeSingle)
-		walkExpr(runner, rule, src, e.RHS, excludeSingle)
-	case *hclsyntax.UnaryOpExpr:
-		walkExpr(runner, rule, src, e.Val, excludeSingle)
-	case *hclsyntax.IndexExpr:
-		walkExpr(runner, rule, src, e.Collection, excludeSingle)
-		walkExpr(runner, rule, src, e.Key, excludeSingle)
-	case *hclsyntax.SplatExpr:
-		walkExpr(runner, rule, src, e.Source, excludeSingle)
-		// e.Each is implicit usually, check?
-	case *hclsyntax.TemplateExpr:
-		for _, part := range e.Parts {
-			walkExpr(runner, rule, src, part, excludeSingle)
-		}
-	case *hclsyntax.TemplateWrapExpr:
-		walkExpr(runner, rule, src, e.Wrapped, excludeSingle)
-	case *hclsyntax.AnonSymbolExpr:
-		// Terminal
-	case *hclsyntax.LiteralValueExpr:
-		// Terminal
-	case *hclsyntax.ScopeTraversalExpr:
-		// Terminal
-	case *hclsyntax.RelativeTraversalExpr:
-		// Terminal
-	default:
-		// Traverse other expressions if they contain nested structures
-	}
 }
 
 func checkList(runner tflint.Runner, rule tflint.Rule, src []byte, expr *hclsyntax.TupleConsExpr, excludeSingle bool) {
@@ -144,28 +78,20 @@ func checkList(runner tflint.Runner, rule tflint.Rule, src []byte, expr *hclsynt
 	}
 
 	rng := expr.Range()
-	startLine := rng.Start.Line
-	endLine := rng.End.Line 
-
-	if startLine == endLine {
-		return // Single line, ignore
+	if rng.Start.Line == rng.End.Line {
+		return
 	}
 
-	// Multi-line list
-	// Check if the last item has a trailing comma
 	lastItem := expr.Exprs[len(expr.Exprs)-1]
 	lastItemEnd := lastItem.Range().End.Byte
-	
 	exprEnd := rng.End.Byte
 
 	if lastItemEnd >= exprEnd || lastItemEnd >= len(src) || exprEnd > len(src) {
 		return
 	}
 
-	// Extract text between last item and closing bracket
 	gap := src[lastItemEnd:exprEnd]
-	
-	// Check for comma, ignoring comments
+
 	hasComma := false
 	for i := 0; i < len(gap); i++ {
 		b := gap[i]
@@ -174,7 +100,6 @@ func checkList(runner tflint.Runner, rule tflint.Rule, src []byte, expr *hclsynt
 			break
 		}
 		if b == '#' || (b == '/' && i+1 < len(gap) && (gap[i+1] == '/' || gap[i+1] == '*')) {
-			// Comment start, stop looking
 			break
 		}
 	}
@@ -202,29 +127,22 @@ func checkMap(runner tflint.Runner, rule tflint.Rule, src []byte, expr *hclsynta
 	if len(expr.Items) == 0 {
 		return
 	}
-	
+
 	if excludeSingle && len(expr.Items) == 1 {
 		return
 	}
 
 	rng := expr.Range()
-	startLine := rng.Start.Line
-	endLine := rng.End.Line
-
-	if startLine == endLine {
-		return // Single line
+	if rng.Start.Line == rng.End.Line {
+		return
 	}
 
-	// Multi-line map: NO trailing commas on ANY line.
-	// We need to check after EACH item.
 	for _, item := range expr.Items {
-		// Check gap after ValueExpr
 		valEnd := item.ValueExpr.Range().End.Byte
-		
 		limit := len(src)
 		scannerIdx := int(valEnd)
 		foundComma := false
-		
+
 		for scannerIdx < limit {
 			b := src[scannerIdx]
 			if b == '\n' || b == '\r' {

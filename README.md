@@ -9,7 +9,7 @@ To use this plugin, you can declare it in your `.tflint.hcl` file:
 ```hcl
 plugin "terraform-style" {
   enabled = true
-  version = "0.1.0"
+  version = "0.2.0"
   source  = "github.com/Heldroe/tflint-ruleset-terraform-style"
 }
 ```
@@ -34,14 +34,18 @@ module/
   99-outputs.tf
 ```
 
-Some files are expected to contain some block types exclusively:
-* `00-variables.tf`: only `variable` blocks
+Some files are expected to contain specific block types exclusively:
+* `00-variables.tf`: only `variable` and `check` blocks
 * `01-terraform.tf`: only the `terraform` block with version & provider constraints
 * `02-locals.tf`: only `locals` blocks
 * `03-data.tf`: only `data` blocks
-* `99-outputs.tf`: only `outputs` blocks
+* `99-outputs.tf`: only `output` blocks
+
+Resource files (all other `.tf` files) may only contain `check`, `module`, `moved`, `removed`, and `resource` blocks by default.
 
 We recommend naming your files with `resource` blocks starting with `10-` onward, for example `10-s3.tf`.
+
+All file rules support an `allowed_blocks` parameter to customize which block types are permitted.
 
 ## Formatting
 
@@ -89,66 +93,72 @@ Enforces that all Terraform files follow the `XX-name.tf` pattern (e.g., `00-var
 
 ```hcl
 rule "terraform_style_variables_file" {
-  enabled  = true
-  filename = "00-variables"
+  enabled        = true
+  filename       = "00-variables"
+  allowed_blocks = ["variable", "check"]
 }
 ```
 
-Enforces all `variable` blocks to be in `00-variables.tf`, and that the file contains only `variable` blocks. The file name can be configured via the `filename` argument.
+Enforces that `00-variables.tf` contains only the allowed block types. By default, `variable` and `check` blocks are allowed. Both the file name and allowed blocks can be configured.
 
 ### [`terraform_style_terraform_file`](./docs/rules/terraform_file.md)
 
 ```hcl
 rule "terraform_style_terraform_file" {
-  enabled  = true
-  filename = "01-terraform"
+  enabled        = true
+  filename       = "01-terraform"
+  allowed_blocks = ["terraform"]
 }
 ```
 
-Enforces the `terraform` block (version and provider constraints) to be in `01-terraform.tf`, that the file contains only the `terraform` block, and that there is exactly one such block. The file name can be configured via the `filename` argument.
+Enforces that `01-terraform.tf` contains only the allowed block types and at most one `terraform` block. By default, only the `terraform` block is allowed. Both the file name and allowed blocks can be configured.
 
 ### [`terraform_style_locals_file`](./docs/rules/locals_file.md)
 
 ```hcl
 rule "terraform_style_locals_file" {
-  enabled  = true
-  filename = "02-locals"
+  enabled        = true
+  filename       = "02-locals"
+  allowed_blocks = ["locals"]
 }
 ```
 
-Enforces all `locals` blocks to be in `02-locals.tf`, that the file contains only `locals` blocks, and that there is exactly one such block. The file name can be configured via the `filename` argument.
+Enforces that `02-locals.tf` contains only the allowed block types and at most one `locals` block. By default, only `locals` blocks are allowed. Both the file name and allowed blocks can be configured.
 
 ### [`terraform_style_data_file`](./docs/rules/data_file.md)
 
 ```hcl
 rule "terraform_style_data_file" {
-  enabled  = true
-  filename = "03-data"
+  enabled        = true
+  filename       = "03-data"
+  allowed_blocks = ["data"]
 }
 ```
 
-Enforces all `data` blocks to be in `03-data.tf`, and that the file contains only `data` blocks. The file name can be configured via the `filename` argument.
+Enforces that `03-data.tf` contains only the allowed block types. By default, only `data` blocks are allowed. Both the file name and allowed blocks can be configured.
 
 ### [`terraform_style_outputs_file`](./docs/rules/outputs_file.md)
 
 ```hcl
 rule "terraform_style_outputs_file" {
-  enabled  = true
-  filename = "99-outputs"
+  enabled        = true
+  filename       = "99-outputs"
+  allowed_blocks = ["output"]
 }
 ```
 
-Enforces all `output` blocks to be in `99-outputs.tf`, and that the file contains only `output` blocks. The file name can be configured via the `filename` argument.
+Enforces that `99-outputs.tf` contains only the allowed block types. By default, only `output` blocks are allowed. Both the file name and allowed blocks can be configured.
 
-### [`terraform_style_no_provider_block`](./docs/rules/no_provider_block.md)
+### [`terraform_style_resource_file`](./docs/rules/resource_file.md)
 
 ```hcl
-rule "terraform_style_no_provider_block" {
-  enabled = true
+rule "terraform_style_resource_file" {
+  enabled        = true
+  allowed_blocks = ["check", "module", "moved", "removed", "resource"]
 }
 ```
 
-Enforces that no `provider` blocks are defined in the module. Provider configurations should be passed from the root module or defined outside the module.
+Enforces that resource files contain only the allowed block types. By default, `data`, `import`, `locals`, `output`, `provider`, `terraform`, and `variable` blocks are not allowed in resource files.
 
 ### [`terraform_style_no_backend_block`](./docs/rules/no_backend_block.md)
 
@@ -158,7 +168,7 @@ rule "terraform_style_no_backend_block" {
 }
 ```
 
-Enforces that no `backend` blocks are defined in the `terraform` block. Backend configuration should be passed via CLI or defined in a separate file if using a partial configuration.
+Enforces that no `backend` or `cloud` blocks are defined in the `terraform` block. Backend and cloud configuration should be passed via CLI or defined in a separate file if using a partial configuration.
 
 ### [`terraform_style_no_empty_file`](./docs/rules/no_empty_file.md)
 
@@ -210,6 +220,28 @@ rule "terraform_style_resource_arguments" {
 ```
 
 Enforces ordering and spacing of standard arguments and blocks (count, for_each, depends_on, lifecycle, etc).
+
+### [`terraform_style_variable_arguments`](./docs/rules/variable_arguments.md)
+
+```hcl
+rule "terraform_style_variable_arguments" {
+  enabled = true
+  order   = ["type", "nullable", "sensitive", "ephemeral", "default", "description", "validation"]
+}
+```
+
+Enforces a consistent ordering of arguments within `variable` blocks. Arguments not listed in `order` are ignored. Only present arguments are checked — none are required to be present. The order can be customized via the `order` parameter.
+
+### [`terraform_style_output_arguments`](./docs/rules/output_arguments.md)
+
+```hcl
+rule "terraform_style_output_arguments" {
+  enabled = true
+  order   = ["description", "sensitive", "ephemeral", "value", "precondition", "depends_on"]
+}
+```
+
+Enforces a consistent ordering of arguments within `output` blocks. Arguments not listed in `order` are ignored. Only present arguments are checked — none are required to be present. The order can be customized via the `order` parameter.
 
 ### [`terraform_style_block_internal_spacing`](./docs/rules/block_internal_spacing.md)
 
@@ -275,14 +307,14 @@ rule "terraform_unused_required_providers" {
 # Terraform style plugin
 plugin "terraform_style" {
   enabled = true
-  version = "0.1.0"
+  version = "0.2.0"
   source  = "github.com/Heldroe/tflint-ruleset-terraform-style"
 }
 ```
 
-When using pure Terraform, you might want to disable the following rules for your top level modules:
-- `terraform_style_no_provider_block`
-- `terraform_style_no_backend_block`
+When using pure Terraform, you might want to adjust the following for your top level modules:
+- Add `"provider"` to `allowed_blocks` in `terraform_style_resource_file` (or whichever file rule should contain provider blocks)
+- Disable `terraform_style_no_backend_block`
 
 ## Contributing
 
