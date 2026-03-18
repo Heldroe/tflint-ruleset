@@ -52,6 +52,13 @@ func (r *NoBackendBlockRule) Check(runner tflint.Runner) error {
 							innerBlock.TypeRange,
 						)
 					}
+					if innerBlock.Type == "cloud" {
+						runner.EmitIssue(
+							r,
+							"cloud configuration is not allowed in the terraform block",
+							innerBlock.TypeRange,
+						)
+					}
 				}
 			}
 		}

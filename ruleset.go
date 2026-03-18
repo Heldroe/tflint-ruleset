@@ -29,6 +29,7 @@ func NewRuleSet() tflint.RuleSet {
 			rules.NewCommentStyleRule(),
 			rules.NewResourceArgumentsRule(),
 			rules.NewVariableArgumentsRule(),
+			rules.NewOutputArgumentsRule(),
 			rules.NewBlockInternalSpacingRule(),
 			rules.NewNoProviderArgumentRule(),
 			rules.NewStructureLayoutRule(),

@@ -6,37 +6,37 @@ import (
 	"github.com/terraform-linters/tflint-plugin-sdk/tflint"
 )
 
-type VariableArgumentsRule struct {
+type OutputArgumentsRule struct {
 	tflint.DefaultRule
 }
 
-func NewVariableArgumentsRule() *VariableArgumentsRule {
-	return &VariableArgumentsRule{}
+func NewOutputArgumentsRule() *OutputArgumentsRule {
+	return &OutputArgumentsRule{}
 }
 
-func (r *VariableArgumentsRule) Name() string {
-	return config.RulePrefix + "_variable_arguments"
+func (r *OutputArgumentsRule) Name() string {
+	return config.RulePrefix + "_output_arguments"
 }
 
-func (r *VariableArgumentsRule) Enabled() bool {
+func (r *OutputArgumentsRule) Enabled() bool {
 	return true
 }
 
-func (r *VariableArgumentsRule) Severity() tflint.Severity {
+func (r *OutputArgumentsRule) Severity() tflint.Severity {
 	return tflint.ERROR
 }
 
-func (r *VariableArgumentsRule) Link() string {
-	return ruleLink("variable_arguments")
+func (r *OutputArgumentsRule) Link() string {
+	return ruleLink("output_arguments")
 }
 
-var defaultVariableOrder = []string{"type", "nullable", "sensitive", "ephemeral", "default", "description", "validation"}
+var defaultOutputOrder = []string{"description", "sensitive", "ephemeral", "value", "precondition", "depends_on"}
 
-func (r *VariableArgumentsRule) Check(runner tflint.Runner) error {
+func (r *OutputArgumentsRule) Check(runner tflint.Runner) error {
 	var ruleConfig struct {
 		Order []string `hclext:"order,optional"`
 	}
-	ruleConfig.Order = defaultVariableOrder
+	ruleConfig.Order = defaultOutputOrder
 
 	if err := runner.DecodeRuleConfig(r.Name(), &ruleConfig); err != nil {
 		return err
@@ -59,10 +59,10 @@ func (r *VariableArgumentsRule) Check(runner tflint.Runner) error {
 		}
 
 		for _, block := range body.Blocks {
-			if block.Type != "variable" {
+			if block.Type != "output" {
 				continue
 			}
-			checkArgumentOrder(runner, r, block, orderIndex, ruleConfig.Order, "variable")
+			checkArgumentOrder(runner, r, block, orderIndex, ruleConfig.Order, "output")
 		}
 	}
 

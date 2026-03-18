@@ -168,7 +168,7 @@ rule "terraform_style_no_backend_block" {
 }
 ```
 
-Enforces that no `backend` blocks are defined in the `terraform` block. Backend configuration should be passed via CLI or defined in a separate file if using a partial configuration.
+Enforces that no `backend` or `cloud` blocks are defined in the `terraform` block. Backend and cloud configuration should be passed via CLI or defined in a separate file if using a partial configuration.
 
 ### [`terraform_style_no_empty_file`](./docs/rules/no_empty_file.md)
 
@@ -231,6 +231,17 @@ rule "terraform_style_variable_arguments" {
 ```
 
 Enforces a consistent ordering of arguments within `variable` blocks. Arguments not listed in `order` are ignored. Only present arguments are checked — none are required to be present. The order can be customized via the `order` parameter.
+
+### [`terraform_style_output_arguments`](./docs/rules/output_arguments.md)
+
+```hcl
+rule "terraform_style_output_arguments" {
+  enabled = true
+  order   = ["description", "sensitive", "ephemeral", "value", "precondition", "depends_on"]
+}
+```
+
+Enforces a consistent ordering of arguments within `output` blocks. Arguments not listed in `order` are ignored. Only present arguments are checked — none are required to be present. The order can be customized via the `order` parameter.
 
 ### [`terraform_style_block_internal_spacing`](./docs/rules/block_internal_spacing.md)
 

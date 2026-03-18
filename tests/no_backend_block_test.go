@@ -62,6 +62,38 @@ terraform {
 				"backend configuration is not allowed in the terraform block",
 			},
 		},
+		{
+			name: "invalid: cloud block in terraform block",
+			files: map[string]string{
+				"01-terraform.tf": `
+terraform {
+  cloud {
+    organization = "my-org"
+  }
+}
+`,
+			},
+			expected: 1,
+			messages: []string{"cloud configuration is not allowed in the terraform block"},
+		},
+		{
+			name: "invalid: both backend and cloud blocks",
+			files: map[string]string{
+				"01-terraform.tf": `
+terraform {
+  backend "s3" {}
+  cloud {
+    organization = "my-org"
+  }
+}
+`,
+			},
+			expected: 2,
+			messages: []string{
+				"backend configuration is not allowed in the terraform block",
+				"cloud configuration is not allowed in the terraform block",
+			},
+		},
 	}
 
 	for _, tc := range tests {
