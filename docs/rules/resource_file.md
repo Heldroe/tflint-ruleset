@@ -17,6 +17,7 @@ Default allowed block types: `check`, `module`, `moved`, `removed`, `resource`.
 | Name | Description | Type | Default |
 | --- | --- | --- | --- |
 | `allowed_blocks` | A list of block types allowed in resource files. | list(string) | `["check", "module", "moved", "removed", "resource"]` |
+| `exempt_blocks` | A map of block types to lists of subtypes that are exempt from the rule, even if their block type is not in `allowed_blocks`. | map(list(string)) | `{}` |
 
 ## Examples
 
@@ -42,3 +43,17 @@ module "subnets" {
   # ...
 }
 ```
+
+### Using `exempt_blocks`
+
+```hcl
+# .tflint.hcl
+rule "terraform_style_resource_file" {
+  enabled = true
+  exempt_blocks = {
+    "data" = ["aws_iam_policy_document"]
+  }
+}
+```
+
+With the configuration above, `data "aws_iam_policy_document"` blocks are allowed in resource files, while other `data` blocks (e.g., `data "aws_ami"`) are still flagged.

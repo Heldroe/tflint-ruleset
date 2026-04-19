@@ -36,7 +36,8 @@ func (r *ResourceFileRule) Link() string {
 
 func (r *ResourceFileRule) Check(runner tflint.Runner) error {
 	var ruleConfig struct {
-		AllowedBlocks []string `hclext:"allowed_blocks,optional"`
+		AllowedBlocks []string            `hclext:"allowed_blocks,optional"`
+		ExemptBlocks  map[string][]string `hclext:"exempt_blocks,optional"`
 	}
 
 	ruleConfig.AllowedBlocks = []string{"check", "module", "moved", "removed", "resource"}
@@ -49,6 +50,11 @@ func (r *ResourceFileRule) Check(runner tflint.Runner) error {
 		return err
 	}
 
+	if err := validateExemptBlocks(ruleConfig.ExemptBlocks); err != nil {
+		return err
+	}
+
+	exemptions := buildExemptions(ruleConfig.ExemptBlocks)
 	specialFiles := resolveSpecialFiles(runner)
 
 	allowed := make(map[string]bool, len(ruleConfig.AllowedBlocks))
@@ -75,6 +81,9 @@ func (r *ResourceFileRule) Check(runner tflint.Runner) error {
 
 		for _, b := range body.Blocks {
 			if !allowed[b.Type] {
+				if isExempt(b, exemptions) {
+					continue
+				}
 				runner.EmitIssue(r,
 					fmt.Sprintf("only %s blocks are allowed in resource files; found %s in %s", strings.Join(ruleConfig.AllowedBlocks, ", "), b.Type, baseName),
 					b.TypeRange,

@@ -45,7 +45,7 @@ Resource files (all other `.tf` files) may only contain `check`, `module`, `move
 
 We recommend naming your files with `resource` blocks starting with `10-` onward, for example `10-s3.tf`.
 
-All file rules support an `allowed_blocks` parameter to customize which block types are permitted.
+All file rules support an `allowed_blocks` parameter to customize which block types are permitted, and an `exempt_blocks` parameter to allow specific subtypes of otherwise-disallowed blocks (e.g., allow `data "aws_iam_policy_document"` in resource files without allowing all `data` blocks).
 
 ## Formatting
 
@@ -96,10 +96,11 @@ rule "terraform_style_variables_file" {
   enabled        = true
   filename       = "00-variables"
   allowed_blocks = ["variable", "check"]
+  exempt_blocks  = {}
 }
 ```
 
-Enforces that `00-variables.tf` contains only the allowed block types. By default, `variable` and `check` blocks are allowed. Both the file name and allowed blocks can be configured.
+Enforces that `00-variables.tf` contains only the allowed block types. By default, `variable` and `check` blocks are allowed. The file name, allowed blocks, and block exemptions can be configured.
 
 ### [`terraform_style_terraform_file`](./docs/rules/terraform_file.md)
 
@@ -108,10 +109,11 @@ rule "terraform_style_terraform_file" {
   enabled        = true
   filename       = "01-terraform"
   allowed_blocks = ["terraform"]
+  exempt_blocks  = {}
 }
 ```
 
-Enforces that `01-terraform.tf` contains only the allowed block types and at most one `terraform` block. By default, only the `terraform` block is allowed. Both the file name and allowed blocks can be configured.
+Enforces that `01-terraform.tf` contains only the allowed block types and at most one `terraform` block. By default, only the `terraform` block is allowed. The file name, allowed blocks, and block exemptions can be configured.
 
 ### [`terraform_style_locals_file`](./docs/rules/locals_file.md)
 
@@ -120,10 +122,11 @@ rule "terraform_style_locals_file" {
   enabled        = true
   filename       = "02-locals"
   allowed_blocks = ["locals"]
+  exempt_blocks  = {}
 }
 ```
 
-Enforces that `02-locals.tf` contains only the allowed block types and at most one `locals` block. By default, only `locals` blocks are allowed. Both the file name and allowed blocks can be configured.
+Enforces that `02-locals.tf` contains only the allowed block types and at most one `locals` block. By default, only `locals` blocks are allowed. The file name, allowed blocks, and block exemptions can be configured.
 
 ### [`terraform_style_data_file`](./docs/rules/data_file.md)
 
@@ -132,10 +135,11 @@ rule "terraform_style_data_file" {
   enabled        = true
   filename       = "03-data"
   allowed_blocks = ["data"]
+  exempt_blocks  = {}
 }
 ```
 
-Enforces that `03-data.tf` contains only the allowed block types. By default, only `data` blocks are allowed. Both the file name and allowed blocks can be configured.
+Enforces that `03-data.tf` contains only the allowed block types. By default, only `data` blocks are allowed. The file name, allowed blocks, and block exemptions can be configured.
 
 ### [`terraform_style_outputs_file`](./docs/rules/outputs_file.md)
 
@@ -144,10 +148,11 @@ rule "terraform_style_outputs_file" {
   enabled        = true
   filename       = "99-outputs"
   allowed_blocks = ["output"]
+  exempt_blocks  = {}
 }
 ```
 
-Enforces that `99-outputs.tf` contains only the allowed block types. By default, only `output` blocks are allowed. Both the file name and allowed blocks can be configured.
+Enforces that `99-outputs.tf` contains only the allowed block types. By default, only `output` blocks are allowed. The file name, allowed blocks, and block exemptions can be configured.
 
 ### [`terraform_style_resource_file`](./docs/rules/resource_file.md)
 
@@ -155,10 +160,11 @@ Enforces that `99-outputs.tf` contains only the allowed block types. By default,
 rule "terraform_style_resource_file" {
   enabled        = true
   allowed_blocks = ["check", "module", "moved", "removed", "resource"]
+  exempt_blocks  = {}
 }
 ```
 
-Enforces that resource files contain only the allowed block types. By default, `data`, `import`, `locals`, `output`, `provider`, `terraform`, and `variable` blocks are not allowed in resource files.
+Enforces that resource files contain only the allowed block types. By default, `data`, `import`, `locals`, `output`, `provider`, `terraform`, and `variable` blocks are not allowed in resource files. Use `exempt_blocks` to allow specific subtypes of otherwise-disallowed blocks.
 
 ### [`terraform_style_no_backend_block`](./docs/rules/no_backend_block.md)
 

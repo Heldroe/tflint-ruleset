@@ -33,8 +33,9 @@ func (r *TerraformBlockFileRule) Link() string {
 
 func (r *TerraformBlockFileRule) Check(runner tflint.Runner) error {
 	var ruleConfig struct {
-		Filename      string   `hclext:"filename,optional"`
-		AllowedBlocks []string `hclext:"allowed_blocks,optional"`
+		Filename      string              `hclext:"filename,optional"`
+		AllowedBlocks []string            `hclext:"allowed_blocks,optional"`
+		ExemptBlocks  map[string][]string `hclext:"exempt_blocks,optional"`
 	}
 
 	ruleConfig.Filename = config.DefaultTerraformFileName
@@ -45,5 +46,5 @@ func (r *TerraformBlockFileRule) Check(runner tflint.Runner) error {
 	}
 
 	expected := fmt.Sprintf("%s.tf", ruleConfig.Filename)
-	return enforceFileAllowedBlocks(runner, r, expected, ruleConfig.AllowedBlocks, map[string]int{"terraform": 1})
+	return enforceFileAllowedBlocks(runner, r, expected, ruleConfig.AllowedBlocks, map[string]int{"terraform": 1}, ruleConfig.ExemptBlocks)
 }

@@ -30,13 +30,54 @@ var validTerraformBlocks = map[string]bool{
 	"variable":  true,
 }
 
+var validBlockTypesList = func() string {
+	types := make([]string, 0, len(validTerraformBlocks))
+	for t := range validTerraformBlocks {
+		types = append(types, t)
+	}
+	sort.Strings(types)
+	return strings.Join(types, ", ")
+}()
+
 func validateAllowedBlocks(blocks []string) error {
 	for _, b := range blocks {
 		if !validTerraformBlocks[b] {
-			return fmt.Errorf("invalid block type %q in allowed_blocks; valid types are: check, data, import, locals, module, moved, output, provider, removed, resource, terraform, variable", b)
+			return fmt.Errorf("invalid block type %q in allowed_blocks; valid types are: %s", b, validBlockTypesList)
 		}
 	}
 	return nil
+}
+
+func validateExemptBlocks(blocks map[string][]string) error {
+	for blockType, subtypes := range blocks {
+		if !validTerraformBlocks[blockType] {
+			return fmt.Errorf("invalid block type %q in exempt_blocks; valid types are: %s", blockType, validBlockTypesList)
+		}
+		if len(subtypes) == 0 {
+			return fmt.Errorf("exempt_blocks[%q] must have at least one subtype", blockType)
+		}
+	}
+	return nil
+}
+
+func buildExemptions(exemptBlocks map[string][]string) map[string]map[string]bool {
+	exemptions := make(map[string]map[string]bool, len(exemptBlocks))
+	for blockType, subtypes := range exemptBlocks {
+		exemptions[blockType] = make(map[string]bool, len(subtypes))
+		for _, st := range subtypes {
+			exemptions[blockType][st] = true
+		}
+	}
+	return exemptions
+}
+
+func isExempt(block *hclsyntax.Block, exemptions map[string]map[string]bool) bool {
+	if len(block.Labels) > 0 {
+		if subtypes, ok := exemptions[block.Type]; ok {
+			return subtypes[block.Labels[0]]
+		}
+	}
+	return false
 }
 
 var specialFileRules = []struct {
@@ -70,10 +111,16 @@ func ruleLink(suffix string) string {
 	return fmt.Sprintf("https://github.com/Heldroe/tflint-ruleset-terraform-style/blob/main/docs/rules/%s.md", suffix)
 }
 
-func enforceFileAllowedBlocks(runner tflint.Runner, rule tflint.Rule, targetFile string, allowedBlocks []string, maxBlocks map[string]int) error {
+func enforceFileAllowedBlocks(runner tflint.Runner, rule tflint.Rule, targetFile string, allowedBlocks []string, maxBlocks map[string]int, exemptBlocks map[string][]string) error {
 	if err := validateAllowedBlocks(allowedBlocks); err != nil {
 		return err
 	}
+
+	if err := validateExemptBlocks(exemptBlocks); err != nil {
+		return err
+	}
+
+	exemptions := buildExemptions(exemptBlocks)
 
 	files, err := runner.GetFiles()
 	if err != nil {
@@ -98,6 +145,9 @@ func enforceFileAllowedBlocks(runner tflint.Runner, rule tflint.Rule, targetFile
 
 		for _, b := range body.Blocks {
 			if !allowed[b.Type] {
+				if isExempt(b, exemptions) {
+					continue
+				}
 				runner.EmitIssue(rule,
 					fmt.Sprintf("only %s blocks are allowed in %s; found %s", strings.Join(allowedBlocks, ", "), targetFile, b.Type),
 					b.TypeRange,

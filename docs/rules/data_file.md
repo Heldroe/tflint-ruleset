@@ -18,6 +18,7 @@ By default, this rule ensures that:
 | --- | --- | --- | --- |
 | `filename` | The base name of the file (without `.tf` extension). | string | `03-data` |
 | `allowed_blocks` | A list of block types allowed in the designated file. | list(string) | `["data"]` |
+| `exempt_blocks` | A map of block types to lists of subtypes that are exempt from the rule, even if their block type is not in `allowed_blocks`. | map(list(string)) | `{}` |
 
 ## Examples
 

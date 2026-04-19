@@ -46,6 +46,24 @@ variable "bar" {}`,
 			expected: 1,
 			messages: []string{"only variable, check blocks are allowed in 00-variables.tf; found resource"},
 		},
+		{
+			name: "exempt data block allowed in variables file",
+			files: map[string]string{
+				"00-variables.tf": `
+variable "foo" {}
+data "aws_caller_identity" "current" {}
+`,
+				".tflint.hcl": `
+rule "terraform_style_variables_file" {
+  enabled = true
+  exempt_blocks = {
+    "data" = ["aws_caller_identity"]
+  }
+}
+`,
+			},
+			expected: 0,
+		},
 	}
 
 	for _, tc := range tests {
@@ -101,6 +119,24 @@ terraform {
 			expected: 1,
 			messages: []string{"only terraform blocks are allowed in 01-terraform.tf; found resource"},
 		},
+		{
+			name: "exempt provider block allowed in terraform file",
+			files: map[string]string{
+				"01-terraform.tf": `
+terraform { required_version = ">= 1.0" }
+provider "aws" { region = "us-east-1" }
+`,
+				".tflint.hcl": `
+rule "terraform_style_terraform_file" {
+  enabled = true
+  exempt_blocks = {
+    "provider" = ["aws"]
+  }
+}
+`,
+			},
+			expected: 0,
+		},
 	}
 
 	for _, tc := range tests {
@@ -138,6 +174,24 @@ func TestOutputsFileRule(t *testing.T) {
 			},
 			expected: 1,
 			messages: []string{"only output blocks are allowed in 99-outputs.tf; found resource"},
+		},
+		{
+			name: "exempt data block allowed in outputs file",
+			files: map[string]string{
+				"99-outputs.tf": `
+output "foo" { value = "bar" }
+data "aws_caller_identity" "current" {}
+`,
+				".tflint.hcl": `
+rule "terraform_style_outputs_file" {
+  enabled = true
+  exempt_blocks = {
+    "data" = ["aws_caller_identity"]
+  }
+}
+`,
+			},
+			expected: 0,
 		},
 	}
 
@@ -188,6 +242,24 @@ locals { baz = "qux" }
 			expected: 1,
 			messages: []string{"only locals blocks are allowed in 02-locals.tf; found resource"},
 		},
+		{
+			name: "exempt data block allowed in locals file",
+			files: map[string]string{
+				"02-locals.tf": `
+locals { foo = "bar" }
+data "aws_caller_identity" "current" {}
+`,
+				".tflint.hcl": `
+rule "terraform_style_locals_file" {
+  enabled = true
+  exempt_blocks = {
+    "data" = ["aws_caller_identity"]
+  }
+}
+`,
+			},
+			expected: 0,
+		},
 	}
 
 	for _, tc := range tests {
@@ -225,6 +297,24 @@ func TestDataFileRule(t *testing.T) {
 			},
 			expected: 1,
 			messages: []string{"only data blocks are allowed in 03-data.tf; found resource"},
+		},
+		{
+			name: "exempt resource block allowed in data file",
+			files: map[string]string{
+				"03-data.tf": `
+data "aws_caller_identity" "current" {}
+resource "null_resource" "foo" {}
+`,
+				".tflint.hcl": `
+rule "terraform_style_data_file" {
+  enabled = true
+  exempt_blocks = {
+    "resource" = ["null_resource"]
+  }
+}
+`,
+			},
+			expected: 0,
 		},
 	}
 
@@ -334,6 +424,93 @@ output "bar" { value = "baz" }
 				"only check, module, moved, removed, resource blocks are allowed in resource files; found variable in 10-main.tf",
 				"only check, module, moved, removed, resource blocks are allowed in resource files; found output in 10-main.tf",
 			},
+		},
+		{
+			name: "exempt data block allowed in resource file",
+			files: map[string]string{
+				"10-main.tf": `data "aws_iam_policy_document" "example" {}`,
+				".tflint.hcl": `
+rule "terraform_style_resource_file" {
+  enabled = true
+  exempt_blocks = {
+    "data" = ["aws_iam_policy_document"]
+  }
+}
+`,
+			},
+			expected: 0,
+		},
+		{
+			name: "non-exempt data block still flagged",
+			files: map[string]string{
+				"10-main.tf": `data "aws_ami" "ubuntu" {}`,
+				".tflint.hcl": `
+rule "terraform_style_resource_file" {
+  enabled = true
+  exempt_blocks = {
+    "data" = ["aws_iam_policy_document"]
+  }
+}
+`,
+			},
+			expected: 1,
+			messages: []string{"only check, module, moved, removed, resource blocks are allowed in resource files; found data in 10-main.tf"},
+		},
+		{
+			name: "mixed exempt and non-exempt data blocks",
+			files: map[string]string{
+				"10-main.tf": `
+data "aws_iam_policy_document" "example" {}
+data "aws_ami" "ubuntu" {}
+`,
+				".tflint.hcl": `
+rule "terraform_style_resource_file" {
+  enabled = true
+  exempt_blocks = {
+    "data" = ["aws_iam_policy_document"]
+  }
+}
+`,
+			},
+			expected: 1,
+			messages: []string{"only check, module, moved, removed, resource blocks are allowed in resource files; found data in 10-main.tf"},
+		},
+		{
+			name: "multiple exempt block types",
+			files: map[string]string{
+				"10-main.tf": `
+data "aws_iam_policy_document" "example" {}
+variable "env" {}
+`,
+				".tflint.hcl": `
+rule "terraform_style_resource_file" {
+  enabled = true
+  exempt_blocks = {
+    "data" = ["aws_iam_policy_document"]
+    "variable" = ["env"]
+  }
+}
+`,
+			},
+			expected: 0,
+		},
+		{
+			name: "exempt block alongside allowed blocks",
+			files: map[string]string{
+				"10-main.tf": `
+resource "aws_vpc" "main" { cidr_block = "10.0.0.0/16" }
+data "aws_iam_policy_document" "example" {}
+`,
+				".tflint.hcl": `
+rule "terraform_style_resource_file" {
+  enabled = true
+  exempt_blocks = {
+    "data" = ["aws_iam_policy_document"]
+  }
+}
+`,
+			},
+			expected: 0,
 		},
 	}
 
